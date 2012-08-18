@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C/DTD XHTML 1.1//EN"
+                      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja">
+	<head>
+		<meta http-equiv = "Content-Type"
+		      content    = "text/html; charset=utf-8" />
+		<meta http-equiv = "Content-Style-Type"
+		      content    = "text/css" />
+		<meta http-equiv = "Content-Script-Type"
+		      content    = "text/javascript" />
+
+		<link rel="stylesheet" type="text/css" href="style/main.css" />
+	</head>
+	<body>
+		<p class="summary-sec">
+			これは <a href="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/">BulletML (http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/)</a>
+			ファイルを読み込むためのプログラムです。<br />
+		</p>
+		<p class="bug-sec">
+			<ul>
+				<li>本家アプレットと挙動がなんかちがう。</li>
+			</ul>
+		</p>
+		<p class="acknowledgements-sec">
+			<ul class="spaced-list">
+				<li>
+					BulletML は ABA Games さんが作ったものです。<br />
+					<a href="http://www.asahi-net.or.jp/~cs8k-cyu/">ABA Games (http://www.asahi-net.or.jp/~cs8k-cyu/)</a><br />
+					<a href="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/">BulletML (http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/)</a><br/>
+				</li>
+				<li>
+					2ch D言語 part29 <a href="http://toro.2ch.net/test/read.cgi/tech/1329714331/574">574</a>
+					さんのゲーム作る流れが、モチベーションです。<br />
+					<a href="http://sourceforge.jp/projects/d-action/wiki/FrontPage">D言語でアクションゲームでも作ってみる？(http://sourceforge.jp/projects/d-action/wiki/FrontPage)</a><br />
+				</li>
+				<li>
+					D言語用です。<br />
+					<a href="http://dlang.org/index.html">D Programing Language 2.0 (http://dlang.org/index.html)</a><br />
+				</li>
+				<li>
+					C言語ライブラリのポーティングに Derelict3 を使っています。<br />
+					<a href="http://dsource.org/projects/derelict">Derelict (http://dsource.org/projects/derelict)</a><br />
+					<a href="https://github.com/aldacron/Derelict3">Derelict3 (https://github.com/aldacron/Derelict3)</a><br />
+				</li>
+				<li>
+					SDL2+OpenGL4.2 環境を想定しています。<br />
+					<a href="http://www.libsdl.org/">SDL (http://www.libsdl.org/)</a><br />
+					<a href="http://www.opengl.org/">OpenGL (http://www.opengl.org/)</a><br />
+				</li>
+				<li>
+					ドキュメントに JQuery を利用しています。<br />
+					<a href="http://jquery.com/">JQuery (http://jquery.com/)</a><br />
+					<a href="http://jqueryui.com/">JQuery UI (http://jqueryui.com/)</a><br />
+					<a href="https://developers.google.com/speed/">Google CDN (https://developers.google.com/speed/)</a><br />
+				</li>
+			</ul>
+		</p>
+		<p class="license-sec">
+			<a href="http://creativecommons.org/publicdomain/zero/1.0/">CC0(http://creativecommons.org/publicdomain/zero/1.0/)</a><br />
+			<p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
+				<a rel="license" href="http://creativecommons.org/publicdomain/zero/1.0/">
+					<img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+				</a>
+				<br />
+				To the extent possible under law,
+				<a rel="dct:publisher" href="sweatygarlic@yahoo.co.jp">
+					<span property="dct:title">KUMA</span></a>
+				has waived all copyright and related or neighboring rights to
+				<span property="dct:title">CT BulletML Parser</span>.
+				This work is published from:
+				<span property="vcard:Country" datatype="dct:ISO3166" content="JP" about="sweatygarlic@yahoo.co.jp">
+					日本</span>.
+			</p>
+		</p>
+		<p class="environment-sec">
+			以下の環境で開発&amp;動作確認しました。
+			<ul>
+				<li>Windows Vista x64</li>
+				<li>dmd 2.059 + Phobos</li>
+			</ul>
+			このドキュメントは<br />
+			FireFox 13 &amp;&amp; IE 9 &amp;&amp; Safari 5 &amp;&amp; Google Chrome 19 &amp;&amp; Sleipnir 2 で動作確認しました。<br />
+			Lunascape 6 || Iron 18 || Opera 11 では表示させることが出来ませんでした。なんでやー<br />
+		</p>
+		<p class="history-sec">
+			<ul class="spaced-list">
+				<li>
+					2012/08/18 ver. 0.0002(dmd2.060)<br />
+					github デビュー。SDL2.dll、SDL2_image.dll、derelict の更新。あとはいっしょ。<br />
+				<li>
+					2012/07/16 ver. 0.0001(dmd2.059)<br />
+					とりあえずでけた。なんやもうぐだぐだや。<br />
+				</li>
+			</ul>
+		</p>
+	</body>
+</html>
