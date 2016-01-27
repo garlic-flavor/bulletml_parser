@@ -1,1783 +1,1800 @@
 /** Compile-Time BulletML Parser.
- * Version:      0.0002(dmd2.060)
- * Date:         2012-Aug-18 21:51:50
- * Authors:      KUMA
- * License:      CC0
-*/
+ * Version:    0.0003(dmd2.069)
+ * Date:       2016-Jan-26 20:40:50.1732797
+ * Authors:    KUMA
+ * License:    CC0
+ **/
+/**
+これは $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/, BulletML(http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/))
+ファイルを読み込むためのプログラムです。
+
+BUGS:
+- 本家アプレットと挙動がなんかちがう。
+
+Acknowledgements:
+$(UL
+  $(LI
+    BulletML は ABA Games さんが作ったものです。$(BR)
+    $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/, ABA Games (http://www.asahi-net.or.jp/~cs8k-cyu/))$(BR)
+    $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/, BulletML (http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/))
+)
+
+  $(LI
+    2ch D言語 part29 $(LINK2 http://toro.2ch.net/test/read.cgi/tech/1329714331/574, 574)
+    さんのゲーム作る流れが、モチベーションです。$(BR)
+    $(LINK2 http://sourceforge.jp/projects/d-action/wiki/FrontPage, D言語でアクションゲームでも作ってみる？(http://sourceforge.jp/projects/d-action/wiki/FrontPage))
+)
+
+  $(LI
+    D言語用です。$(BR)
+    $(LINK2 http://dlang.org/index.html, D Programing Language 2.0 (http://dlang.org/index.html))
+)
+
+  $(LI
+    C言語ライブラリのポーティングに Derelict を使っています。$(BR)
+    $(LINK2 https://github.com/DerelictOrg, Derelict (https://github.com/DerelictOrg))
+)
+
+  $(LI
+    SDL2+OpenGL4.2 環境を想定しています。$(BR)
+    $(LINK2 http://www.libsdl.org/, SDL (http://www.libsdl.org/))$(BR)
+    $(LINK@ http://www.opengl.org/, OpenGL (http://www.opengl.org/))
+)
+
+  $(LI
+    ドキュメントに JQuery を利用しています。$(BR)
+    $(LINK2 http://jquery.com/, JQuery (http://jquery.com/))
+)
+)
+
+Lincense:
+  $(LINK2 http://creativecommons.org/publicdomain/zero/1.0/, CC0(http://creativecommons.org/publicdomain/zero/1.0/))
+  <p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
+    <a rel="license" href="http://creativecommons.org/publicdomain/zero/1.0/">
+      <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+    </a>
+    <br />
+    To the extent possible under law,
+    <a rel="dct:publisher" href="sweatygarlic@yahoo.co.jp">
+      <span property="dct:title">KUMA</span></a>
+    has waived all copyright and related or neighboring rights to
+    <span property="dct:title">CT BulletML Parser</span>.
+    This work is published from:
+    <span property="vcard:Country" datatype="dct:ISO3166" content="JP" about="sweatygarlic@yahoo.co.jp">
+    日本</span>.
+  </p>
+
+
+
+DevelopmentEnvironment:
+以下の環境で開発&amp;動作確認しました。
+$(UL
+  $(LI Windows Vista x64)
+  $(LI dmd 2.069.2)
+)
+
+
+History:
+$(UL
+  $(LI
+    2016/01/27 ver. 0.0003(dmd2.069.2)$(BR)
+    全面的に書き直し。
+  )
+  $(LI
+    2012/08/18 ver. 0.0002(dmd2.060)$(BR)
+    github デビュー。SDL2.dll、SDL2_image.dll、derelict の更新。あとはいっしょ。
+  )
+  $(LI
+    2012/07/16 ver. 0.0001(dmd2.059)$(BR)
+    とりあえずでけた。なんやもうぐだぐだや。$(BR)
+  )
+)
+
+ **/
 module sworks.bulletml.ctbml;
 
-import std.algorithm, std.ascii, std.string, std.conv, std.array, std.random, std.exception;
-import sworks.compo.util.matrix;
-import sworks.compo.util.factory;
+import sworks.base.matrix;
+import sworks.base.factory;
+import sworks.xml;
 
-/*############################################################################*\
-|*#                                                                          #*|
-|*#                         Compile-Time XML Parser                          #*|
-|*#                                                                          #*|
-\*############################################################################*/
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               parseXMLTag                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-/// 文字列を XMLTag にする。
-XMLTag parseXMLTag( ref string cont )
-{
-	XMLTag result;
-	cont.stripLeftXML;
-	if( 0 == cont.length ) return result;
-	if( '<' == cont[0] )
-	{
-		cont = cont[ 1 .. $ ];
-		result.name = cont.until!"!std.ascii.isAlpha(a)".to!string;
-		cont = cont[ result.name.length .. $ ];
-		result.attributes = parseAttribute( cont );
-		if( 0 == cont.length ) return result;
-		if     ( cont.startsWith("/>") ) { cont = cont[ 2 .. $ ]; return result; }
-		else if( '>' != cont[0] ) return result;
-		cont = cont[ 1 .. $ ];
-		for( ; ; )
-		{
-			cont.stripLeftXML;
-			if( 0 == cont.length ) return result;
-			if( cont.startsWith( "</" ) )
-			{
-				if( !cont.findSkip(">") ) cont = "";
-				return result;
-			}
-			else{ result.children ~= parseXMLTag( cont ); }
-		}
-	}
-	else
-	{
-		auto t = cont.until('<').to!string;
-		cont = cont[ t.length .. $ ];
-		result.text = t.strip;
-	}
-
-	return result;
-}
-
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                                  XMLTag                                  |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
-/// XML 構造を表現する。
-struct XMLTag
-{
-	string name; /// タグの名前
-	string[string] attributes; /// 属性
-	string _text; /// text
-	XMLTag[] children; /// 子要素
-
-	/// 属性を検索する。
-	string opIndex( string key )
-	{
-		if( key in attributes ) return attributes[ key ];
-		else return "";
-	}
-	/// ditto
-	string get( string key, lazy string def )
-	{
-		if( key in attributes ) return attributes[key];
-		else
-		{
-			attributes[ key ] = def;
-			return def;
-		}
-	}
-
-	/// 属性を適用する。
-	void opIndexAssign( string val, string key ) { attributes[ key ] = val; }
-
-	/// 文字列を設定、検索する。
-	void text( string t ) @property { _text = t; }
-	/// ditto
-	string text() @property const
-	{
-		if( 0 < _text.length ) return _text;
-		else
-		{
-			string result;
-			foreach( child ; children )
-			{
-				result = child.text;
-				if( 0 < result.length ) break;
-			}
-			return result;
-		}
-	}
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               stripLeftXML                               |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-/// 文字列先頭から XML における、空白、コメントなどを取り除く。
-void stripLeftXML( ref string cont )
-{
-	for(;;)
-	{
-		cont = cont.stripLeft;
-		if     ( 0 == cont.length ) break;
-		else if( 0 < cont.startsWith( "<!--" ) )
-		{
-			cont = cont[ 4 .. $ ];
-			if( !cont.findSkip( "-->" ) ) { cont = cont[ $ .. $ ]; break; }
-		}
-		else if( '<' == cont[0] && 1 < cont.length && ( '!' == cont[1] || '?' == cont[1] ) )
-		{
-			cont = cont[ 2 .. $ ];
-			if( !cont.findSkip( ">" ) ) { cont = cont[ $ .. $ ]; break; }
-		}
-		else break;
-	}
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                              parseAttribute                              |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-/// 「label="hello" type="vertical"> ...」みたいな文字列から Attribute の連想配列を取り出す。
-string[string] parseAttribute( ref string cont )
-{
-	string[string] result;
-	string rest, key, val;
-	for( ; ; )
-	{
-		cont = cont.stripLeft;
-		if( 0 == cont.length ) return result;
-		if( '>' == cont[0] || '/' == cont[0] ) break;
-		key = cont.until('=').to!string;
-		if( 0 == key.length ) break;;
-		cont = cont[ key.length .. $ ];
-		key.strip;
-		if( !cont.findSkip("\"") ) { cont = ""; break; }
-		val = cont.until('"').to!string;
-		if( 0 == val.length ) { cont = ""; break; }
-		result[ key ] = val;
-		cont = cont[ val.length + 1 .. $ ];
-	}
-	return result;
-}
-
-/*############################################################################*\
-|*#                                                                          #*|
-|*#                                 BulletML                                 #*|
-|*#                                                                          #*|
-\*############################################################################*/
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                                IPointable                                |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+//------------------------------------------------------------------------------
 /// 画面に表示されるキャラクタはこれを実装すべき
 interface IPointable
 {
-	Vector2f point() @property const; /// キャラクタのグローバル座標
+    @property @trusted @nogc pure nothrow
+    Vector2f point() const; /// キャラクタのグローバル座標
 }
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                                 IMovable                                 |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+
+//------------------------------------------------------------------------------
 /// 位置を変化させるキャラクタはこれを実装すべき。
 interface IMovable : IPointable
 {
-	enum SPEED_SCALE = 3f; /// 謎のマジックナンバー
+    enum SPEED_SCALE = 3f; /// 謎のマジックナンバー
 
-	float heading() @property const; /// キャラクタの向き clockwise
-	void heading( float ) @property; /// ditto
-	Vector2f headingVector() @property const; /// ditto
+    @property @trusted @nogc pure nothrow
+    {
+        float heading() const; /// キャラクタの向き clockwise
+        void heading(float); /// ditto
+        Vector2f headingVector() const; /// ditto
 
-	float speed() @property const; /// キャラクタの移動速度 1フレーム(==1/60sec) で何ピクセル進むか。
-	void speed( float ) @property; /// ditto
+        /// キャラクタの移動速度。 1フレーム(==1/60sec) で何ピクセル進むか。
+        float speed() const;
+        void speed(float); /// ditto
 
-	bool isActive() @property const; /// action 要素を消化しきっていない時 → true
-	bool willVanish() @property const; /// vanish() が実行されたかどうか。
-	void update( float term ); /// 位置を term フレーム更新する。
-	void vanish(); /// これが実行されると次の update で activeBullets から消える。
+        bool alive() const; /// action 要素を消化しきっていない時 → true
+        bool willVanish() const; /// vanish() が実行されたかどうか。
+    }
+
+    void update(float term); /// 位置を term フレーム更新する。
+
+    /// これが実行されると次の update で activeBullets から消える。
+    @trusted @nogc pure nothrow
+    void vanish();
 }
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                                ILabelable                                |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+
+//------------------------------------------------------------------------------
 /// 名前付き
 interface ILabelable
 {
-	string label() @property const; /// タグのラベル属性に対応している。
+    @property @trusted @nogc pure nothrow
+    string label() const; /// タグのラベル属性に対応している。
 }
 
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                             _IFireController                             |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
-private interface _IFireController
+//------------------------------------------------------------------------------
+//
+private
+interface _IFireController
 {
-	void fireNotice( IBullet ) @property; // Bullet が発射された時に呼ばれる。( from init_bullet() )
-	IPlayer player() @property; // プレイヤ情報を返す。
+    // Bullet が発射された時に呼ばれる。(from init_bullet())
+    @property
+    void fireNotice(IBullet);
+    @property @trusted @nogc pure nothrow
+    IPlayer player(); // プレイヤ情報を返す。
 }
 
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                                 IPlayer                                  |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+//------------------------------------------------------------------------------
 /// BulletML のユーザが実装する。
 interface IPlayer : IPointable
 {
-	void fireNotice( IBullet );
+    void fireNotice(IBullet);
 }
 
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                               IActionFunc                                |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+//------------------------------------------------------------------------------
 /// action 要素を表す。
 interface IActionFunc : ISlist!IActionFunc
 {
-	bool update( ref float term );
+    bool update(ref float term);
+    void remove();
 }
 
-/*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*\
-|*|                                 IBullet                                  |*|
-\*IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII*/
+//------------------------------------------------------------------------------
 /// bullet 要素を表す。
-interface IBullet : ISlist!IBullet, ILabelable, _IFireController, IMovable, IPointable //<ここに IPointable が必要なのはおそらくバグ。
+interface IBullet : ISlist!IBullet, ILabelable, _IFireController, IMovable
 {
-	enum DEFAULT_SPEED = 1f; /// 値が指定されなかった場合の弾の速度
-	/// シューターのタイプ
-	enum TYPE { NONE, VERTICAL, HORIZONTAL, }
+    enum DEFAULT_SPEED = 1f; /// 値が指定されなかった場合の弾の速度
+    /// シューターのタイプ
+    enum Type { none, vertical, horizontal, }
 
-	ref ActiveIBulletsIterator activeBullets() @property; /// 現在アクティブな弾を巡回する。
-	bool hasActiveBullets() @property const; /// 現在、アクティブな弾が存在するかどうか。
+    void remove();
+    int opApply(scope int delegate(IBullet) dg);
 
-	IBullet parent() @property; /// 親弾
+    @property @trusted @nogc pure nothrow:
 
-	/// ユーザ定義のデータを格納できるよ。
-	BulletData data() @property;
-	void data( BulletData ) @property;
+    bool hasChild() const;
+    BulletIterator children(); /// 子
+    IBullet parent(); /// 親弾
+
+    /// ユーザ定義のデータを格納できるよ。
+    ref BulletData data();
+
 }
 
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                          ActiveIBulletsIterator                          |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
-/// IBullet とその中の アクティブな弾を巡回する。
-struct ActiveIBulletsIterator
-{
-	private IBullet _base;
-	private IBullet _front;
-	private ActiveIBulletsIterator* _current;
-	alias _front this;
-	
-	this( IBullet b ) { this._base = this._front = b; _current = null; }
-
-	bool empty() @property const { return null is _front; }
-
-	IBullet front() @property { return _front; }
-
-	void popFront() @property
-	{
-		if     ( null is _base ){ }
-		else
-		{
-			if( null !is _current ) _current.popFront;
-			else _current = &(_base.activeBullets());
-
-			if( !_current.empty ) _front = _current.front;
-			else { _base = _front = _base.next; _current = null; }
-		}
-	}
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                  Bullet                                  |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
-/// 弾
-class Bullet : IBullet
-{ mixin SFactory!IBullet;
-
-	private string _label;
-	private Vector2f _point;
-	private float _heading;
-	private Vector2f _heading_vec;
-	private float _speed;
-	private IActionFunc _action;
-	private bool _will_vanish;
-	private IBullet _parent;
-	private BulletData _data;
-
-	private IPlayer _player;
-	private BulletBank _active_bullets;
-	private Vector2f _fire_direction;
-	private float _fire_speed;
-	private ActiveIBulletsIterator _active_iterator;
-
-	/// 弾の名前
-	string label() @property const { return _label; }
-	/// 弾の位置(グローバル座標)
-	Vector2f point() @property const { return _point; }
-	/// 弾の向き
-	float heading() @property const { return _heading; }
-	/// ditto
-	void heading( float h ) @property
-	{
-		this._heading = h % 360f;
-		this._heading_vec = Vector2f( 0, 1 ).rotateVector( - h * TO_RADIAN );
-	}
-	/// ditto
-	Vector2f headingVector() @property const { return _heading_vec; }
-	/// 弾の速度
-	float speed() @property const { return _speed; }
-	/// ditto
-	void speed( float s ) @property { this._speed = s; }
-
-	/// この弾が狙っているプレイヤ
-	IPlayer player() @property { return _player; }
-
-	/// action 要素を消化しきっている → false
-	bool isActive() @property const { return null !is _action; }
-
-	IBullet parent() @property { return _parent; }
-	BulletData data() @property { return _data; }
-	void data( BulletData bd ) @property { _data = bd; }
-
-	/**
-	 * この弾と、この弾から発射された弾を term フレーム分更新する。$(BR)
-	 * vanish が実行され、子孫の弾も持たない子の弾は activeBullets から取り除かれる。
-	 */
-	void update( float term )
-	{
-		for( auto ite = _active_bullets.iterator ; !ite.empty ; )
-		{
-			if( !ite.willVanish || ite.hasActiveBullets ) { ite.update( term ); ite.popFront; }
-			else ite.popAndRemoveFront;
-		}
-
-		_point += _heading_vec * ( term * _speed * SPEED_SCALE );
-
-		if     ( !_will_vanish ) _action.update_parallel( term );
-		else if( null !is _action ) { _action.remove_all; _action = null; }
-	}
-
-	/// 弾を消す。この弾の親の次の update 時の巡回で activeBullets から消える。
-	void vanish()
-	{
-		_will_vanish = true;
-	}
-	/// vanish() が呼び出されたかどうか。
-	bool willVanish() @property const { return _will_vanish; }
-
-	private void onReset( IBullet parent, string label, Vector2f point, float heading, float speed )
-	{
-		this._parent = parent;
-		onReset( parent.player, label, point, heading, speed );
-	}
-	private void onReset( IPlayer player, string label, Vector2f point, float heading, float speed )
-	{
-		this._player = player;
-		this._label = label; this._point = point; this.heading = heading;
-		if( float.nan !is speed ) this._speed = speed;
-		else this._speed = DEFAULT_SPEED;
-
-		_will_vanish = false;
-	}
-	private void onRemove()
-	{
-		this._parent = null;
-		this._player = null;
-		if( null !is _action ) { _action.remove_all; _action = null; }
-		_active_bullets.clear;
-	}
-
-	// 子から通達がある。
-	void fireNotice( IBullet bullet ) @property
-	{
-		_fire_direction = bullet.heading;
-		_fire_speed = bullet.speed;
-		_active_bullets += bullet;
-	}
-
-	/// アクティブ(表示すべき)弾があるかどうか。
-	bool hasActiveBullets() @property const { return !_active_bullets.empty; }
-	/// アクティブな弾を巡回する。
-	ref ActiveIBulletsIterator activeBullets() @property
-	{
-		_active_iterator = ActiveIBulletsIterator( _active_bullets.front );
-		return _active_iterator;
-	}
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               init_bullet                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_bullet( XMLTag xml )
-{
-	string result =
-		"( Action act, IBullet parent, Vector2f p, float h, float speed, RefParam rp )"
-		"{"
-		"    SlistAppender!IActionFunc app;"
-		"    auto b = Bullet( parent, \"" ~ xml["label"] ~ "\", p, h, speed );";
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "action".icmp( child.name ) ) result ~= "app.put(" ~ init_action(child) ~ "( null, b, rp ));";
-		else if( 0 == "speed".icmp( child.name ) )
-			result ~= "if( float.nan is speed ){ b.speed = " ~ lazy_number( child.text ) ~ ";}";
-	}
-	result ~=
-		"    b._action = app.flush;"
-		"    parent.fireNotice( b );"
-		"    act.fireNotice( b );"
-		"    parent.player.fireNotice( b );"
-		"    return b;"
-		"}";
-	return result;
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                 BulletML                                 |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
-/**
- * BulletML ファイルの最外殻を表す。$(BR)
- * bulletml 要素直下のラベル付き要素に対応した初期化関数が定義されている。$(BR)
- * 例えば、$(BR)
- * &lt;action label="top"&gt; ... &lt;/action&gt;$(BR)
- * ならば、$(BR)
- * BulletML.Action_top で参照できる。$(BR)
- * 同様に、$(BR)
- * BulletML.Bullet_missile$(BR)
- * BulletML.Fire_aim1$(BR)
- * の様に要素を参照することが出来る。
- */
-class BulletML(string filename) : Bullet
-{ mixin SFactory!IBullet SF;
-
-	void onReset( IPlayer p, Vector2f point, float heading, float speed )
-		{ super.onReset( p, filename, point, heading, speed ); }
-	void onRemove() { super.onRemove(); }
-	// bulletml 直下の、action 要素、bullet 要素及び fire 要素を表わすクラスのインスタンスを返す関数を定義する。
-	mixin( import(filename).def_bullet_members );
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                            def_bullet_members                            |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string def_bullet_members( string filecont )
-{
-	auto xml = parseXMLTag( filecont );
-	string type = xml["type"];
-	if     ( 0 == "vertical".icmp(type) ) type = "TYPE.VERTICAL";
-	else if( 0 == "horizontal".icmp(type) ) type = "TYPE.HORIZONTAL";
-	else type = "TYPE.NONE";
-
-	string result = "enum type = " ~ type ~ ";";
-	foreach( i, child ; xml.children )
-	{
-		auto label = child["label"].valid_name;
-		if( 0 == label.length ) label = "anonymous_" ~ i.to!string;
-		child["label"] = label;
-		if     ( 0 == "action".icmp( child.name ) )
-			result ~= "static Action Action_" ~ label ~ init_action(child);
-		else if( 0 == "bullet".icmp( child.name ) )
-			result ~= "static Bullet Bullet_" ~ label ~ init_bullet(child);
-		else if( 0 == "fire".icmp( child.name ) )
-			result ~= "static Fire Fire_" ~ label ~ init_fire(child);
-	}
-
-	result ~=
-		"static IBullet opCall( IPlayer player, Vector2f p, float h, float speed, float rank )"
-		"{"
-		"    SlistAppender!IActionFunc app;"
-		"    auto b = SF.opCall( player, p, h, speed );"
-		"    RefParam rp; rp[0] = rank;";
-	foreach( child ; xml.children )
-	{
-		if( 0 == "action".icmp( child.name ) && child["label"].startsWith( "top" ) )
-			result ~= "app.put( Action_" ~ child["label"] ~ "( null, b, rp ) );";
-	}
-	result ~=
-		"    b._action = app.flush;"
-		"    return b;"
-		"}";
-	return result;
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                  Action                                  |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
-/// action 要素を表す。
-class Action : IActionFunc
-{ mixin SFactory!IActionFunc;
-
-	private string _label;
-	private IActionFunc _children;
-	private float _fire_direction;
-	private float _fire_speed;
-
-	private void onReset( string label )
-	{
-		this._label = label;
-
-		_fire_direction = 0f;
-		_fire_speed = 1f;
-	}
-
-	private void onRemove() { if( null !is _children ) { _children.remove_all; _children = null; } }
-
-	/// 名前
-	string label() @property const { return _label; }
-	/// term フレーム分更新する。
-	bool update( ref float term ) {  return _children.update_all( term ); }
-
-	// 前回の弾の発射方向
-	float fireDirection() @property { return _fire_direction; }
-	// 前回の弾の発射速度
-	float fireSpeed() @property { return _fire_speed; }
-	// init_bullet() から呼び出されている。
-	void fireNotice( IBullet bullet )
-	{
-		this._fire_direction = bullet.heading;
-		this._fire_speed = bullet.speed;
-	}
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               init_action                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_action( XMLTag xml )
-{
-	string result =
-		"( Action parent, IBullet bul, RefParam rp )"
-		"{"
-		"    SlistAppender!IActionFunc app;"
-		"    RefParam rrp;"
-		"    auto act = Action( \"" ~ xml["label"] ~ "\" );"
-		"    auto p = null !is parent ? parent : act;";
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "repeat".icmp( child.name ) )
-			result ~= "app.put(" ~ init_repeat(child) ~ "( p, bul, rp ));";
-		else if( 0 == "wait".icmp( child.name ) ) result ~= "app.put(" ~ init_wait(child) ~"(rp) );";
-		else if( 0 == "fire".icmp( child.name ) )
-			result ~= "app.put(" ~ init_fire(child) ~ "( p, bul, rp ) );";
-		else if( 0 == "fireref".icmp( child.name ) )
-		{
-			result ~= "rrp = " ~ ready_ref(child) ~ "(rp);";
-			result ~= "app.put( Fire_" ~ child["label"] ~ "( p, bul, rrp ) );";
-		}
-		else if( 0 == "changespeed".icmp( child.name ) )
-			result ~= "app.put(" ~ init_changespeed(child) ~ "( bul ) );";
-		else if( 0 == "changedirection".icmp( child.name ) )
-			result ~= "app.put(" ~ init_changedirection(child) ~ "( bul ) );";
-		else if( 0 == "accel".icmp( child.name ) ) result ~= "app.put(" ~ init_accel(child) ~ "( bul, rp ) );";
-		else if( 0 == "vanish".icmp( child.name ) ) result ~= "app.put( Vanish( bul ) );";
-		else if( 0 == "action".icmp( child.name ) )
-			result ~= "app.put( " ~ init_action(child) ~ "( p, bul, rp ) );";
-		else if( 0 == "actionref".icmp( child.name ) )
-			result ~= "app.put( " ~ init_actionref(child) ~ "( p, bul, rp ) );";
-	}
-	result ~=
-		"    act._children = app.flush;"
-		"    return act;"
-		"}";
-	return result;
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                update_all                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-/// アクションを順に更新する。
-bool update_all( ref IActionFunc act, ref float term )
-{
-	for( auto ite = act.iterator ; !ite.empty ; )
-	{
-		if     ( !ite.update( term ) ) ite.popAndRemoveFront;
-		else if( 0 < term ) ite.popFront;
-		else break;
-	}
-	return null !is act;
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                             update_parallel                              |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-/// 複数のアクションを同時進行で更新する。
-bool update_parallel( ref IActionFunc act, ref float term )
-{
-	bool alive = true;
-	for( auto ite = act.iterator ; !ite.empty && alive ; ite.popFront )
-	{
-		auto t = term;
-		alive &= ite.update( t );
-	}
-	if( !alive ) { act.remove_all(); act = null; }
-	
-	return null !is act;
-}
-
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                                Direction                                 |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
+//------------------------------------------------------------------------------
 /// 方向を示す。画面上向きを 0°として時計回りに 360°で一周を表す。
 struct Direction
 {
-	/// 狙い方
-	enum TYPE { AIM, ABSOLUTE, RELATIVE, SEQUENCE }
-	TYPE type = TYPE.AIM; ///
-	float dir = 0f; /// 360 degree clockwise
+    /// 狙い方
+    enum Type { aim, absolute, relative, sequence }
+    Type type = Type.aim; ///
+    float dir = 0f; /// 360 degree clockwise
+
+    @trusted @nogc pure nothrow
+    void clear(){ type = Type.aim; dir = 0f; }
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                              init_direction                              |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_direction( XMLTag xml )
-{
-	string type = xml["type"];
-	if     ( 0 == "absolute".icmp( type ) ) type = "Direction.TYPE.ABSOLUTE";
-	else if( 0 == "relative".icmp( type ) ) type = "Direction.TYPE.RELATIVE";
-	else if( 0 == "sequence".icmp( type ) ) type = "Direction.TYPE.SEQUENCE";
-	else type = "Direction.TYPE.AIM";
-
-	return "Direction( " ~ type ~ ", " ~ lazy_number( xml.text ) ~ " )";
-}
-
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                                  Speed                                   |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
+//------------------------------------------------------------------------------
 /// 速度を表す。1フレームで移動するピクセル数で表されている(と思われる。)l
 struct Speed
 {
-	enum TYPE { ABSOLUTE, RELATIVE, SEQUENCE }
-	TYPE type = TYPE.ABSOLUTE;
-	float speed = float.nan; /// pixels per frame
-}
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                init_speed                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_speed( XMLTag xml )
-{
-	string type = xml["type"];
-	if     ( 0 == "relative".icmp( type ) ) type = "Speed.TYPE.RELATIVE";
-	else if( 0 == "sequence".icmp( type ) ) type = "Speed.TYPE.SEQUENCE";
-	else type = "Speed.TYPE.ABSOLUTE";
-	return "Speed( " ~ type ~ ", " ~ lazy_number( xml.text ) ~ " )";
+    enum Type { absolute, relative, sequence }
+    Type type = Type.absolute;
+    float speed = float.nan; /// pixels per frame
+
+    @trusted @nogc pure nothrow
+    void clear(){ type = Type.absolute; speed = float.nan; }
 }
 
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                   Fire                                   |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
+/**
+BulletML ファイルの最外殻を表す。$(BR)
+bulletml 要素直下のラベル付き要素に対応した初期化関数が定義されている。$(BR)
+例えば、$(BR)
+&lt;action label="top"&gt; ... &lt;/action&gt;$(BR)
+ならば、$(BR)
+BulletML.Action_top で参照できる。$(BR)
+同様に、$(BR)
+BulletML.Bullet_missile$(BR)
+BulletML.Fire_aim1$(BR)
+の様に要素を参照することが出来る。
+**/
+class Bullet(string filename = null) : IBullet
+{ mixin SFactoryMix!IBullet SF;
+
+    private string _label;
+    private Vector2f _point;
+    private float _heading;
+    private Vector2f _headingVec;
+    private float _speed;
+    private IActionFunc _action;
+    private bool _willVanish;
+    private IBullet _parent;
+    private BulletData _data;
+
+    private IPlayer _player;
+    private IBullet _children;
+    private Vector2f _fireDirection;
+    private float _fireSpeed;
+
+    @property @trusted @nogc pure nothrow
+    {
+        /// 弾の名前
+        string label() const { return _label; }
+        /// 弾の位置(グローバル座標)
+        Vector2f point() const { return _point; }
+
+        /// 弾の向き
+        float heading() const { return _heading; }
+        /// ditto
+        void heading(float h)
+        {
+            _heading = h % 360f;
+            _headingVec = Vector2f(0, 1).rotateVector(-h * TO_RADIAN);
+        }
+        /// ditto
+        Vector2f headingVector() const { return _headingVec; }
+        /// 弾の速度
+        float speed() const { return _speed; }
+        void speed(float f) { _speed = f; }
+
+        /// この弾が狙っているプレイヤ
+        IPlayer player() { return _player; }
+
+        /// action 要素を消化しきっている → false
+        bool alive() const { return null !is _action; }
+
+        IBullet parent() { return _parent; }
+        ref BulletData data() { return _data; }
+
+        /// vanish() が呼び出されたかどうか。
+        bool willVanish() const { return _willVanish; }
+
+        /// アクティブ(表示すべき)弾があるかどうか。
+        bool hasChild() const { return _children !is null; }
+        ///
+        BulletIterator children() { return _children.iterator; }
+    }
+
+    /**
+    この弾と、この弾から発射された弾を term フレーム分更新する。$(BR)
+    vanish が実行され、子孫の弾も持たない子の弾は _activeBullets から取り除かれ
+    る。
+    **/
+    void update(float term)
+    {
+        for (auto ite = _children.iterator ; !ite.empty ;)
+        {
+            if (!ite.willVanish || ite.hasChild)
+            { ite.update(term); ite.popFront; }
+            else (cast(This)ite.removeFront).remove;
+        }
+
+        _point += _headingVec * (term * _speed * SPEED_SCALE);
+
+        if      (!_willVanish) _action.updateParallel(term);
+        else if (null !is _action) { _action.remove; _action = null; }
+    }
+
+    /// 弾を消す。この弾の親の次の update 時の巡回で activeBullets から消える。
+    @trusted @nogc pure nothrow
+    void vanish() { _willVanish = true; }
+
+    private @trusted @nogc pure nothrow
+    void onReset(IBullet parent, string label, Vector2f point, float heading,
+                 float speed)
+    {
+        _parent = parent;
+        onReset(parent.player, label, point, heading, speed);
+    }
+    private @trusted @nogc pure nothrow
+    void onReset(IPlayer player, string label, Vector2f point, float heading,
+                 float speed)
+    {
+        _player = player;
+        _label = label; _point = point; this.heading = heading;
+        if (float.nan !is speed) _speed = speed;
+        else _speed = DEFAULT_SPEED;
+        _willVanish = false;
+    }
+
+    private
+    void onRemove()
+    {
+        _parent = null;
+        _player = null;
+        _data = null;
+        if (null !is _action) { _action.remove; _action = null; }
+        if (_children !is null) { _children.remove; _children = null; }
+    }
+
+    // 子から通達がある。
+    @trusted @nogc pure nothrow
+    void fireNotice(IBullet bullet)
+    {
+        _fireDirection = bullet.heading;
+        _fireSpeed = bullet.speed;
+        _children.pushFront(bullet);
+    }
+
+    ///
+    int opApply(scope int delegate(IBullet) dg)
+    {
+        auto result = dg(this);
+        if (result == 0 && _children !is null) result = _children.opApply(dg);
+        if (result == 0 && _next !is null) result = _next.opApply(dg);
+        return result;
+    }
+
+
+    // メンバの登録。
+    static if (filename)
+        mixin(import(filename).defBMLMembers);
+}
+
+//------------------------------------------------------------------------------
+/// action 要素を表す。
+class Action : IActionFunc
+{ mixin SFactoryMix!IActionFunc;
+
+    private string _label;
+    private IActionFunc _children;
+    private float _fireDirection;
+    private float _fireSpeed;
+
+    private @trusted @nogc pure nothrow
+    void onReset(string label)
+    {
+        _label = label;
+        _children = null;
+        _fireDirection = 0f;
+        _fireSpeed = 1f;
+    }
+
+    private
+    void onRemove()
+    { if (null !is _children) _children.remove; _children = null; }
+
+    /// 名前
+    @property @trusted @nogc pure nothrow
+    string label() const { return _label; }
+    /// term フレーム分更新する。
+    bool update(ref float term) {  return _children.updateAll(term); }
+
+    // 前回の弾の発射方向
+    @property @trusted @nogc pure nothrow
+    float fireDirection() const { return _fireDirection; }
+    // 前回の弾の発射速度
+    @property @trusted @nogc pure nothrow
+    float fireSpeed() const { return _fireSpeed; }
+    // init_bullet() から呼び出されている。
+
+    @trusted @nogc pure nothrow
+    void fireNotice(IBullet bullet)
+    {
+        _fireDirection = bullet.heading;
+        _fireSpeed = bullet.speed;
+    }
+}
+
+//------------------------------------------------------------------------------
+/// アクションを順に更新する。
+bool updateAll(ref IActionFunc act, ref float term)
+{
+    for (auto ite = act.iterator ; !ite.empty ;)
+    {
+        if     (!ite.update(term)) ite.removeFront.remove;
+        else if (0 < term) ite.popFront;
+        else break;
+    }
+    return act !is null;
+}
+
+//------------------------------------------------------------------------------
+/// 複数のアクションを同時進行で更新する。
+bool updateParallel(ref IActionFunc act, ref float term)
+{
+    bool alive = true;
+    for (auto ite = act.iterator ; !ite.empty && alive ;)
+    {
+        auto t = term;
+        auto r = ite.update(t);
+        alive &= r;
+        if (r) ite.popFront;
+        else ite.removeFront.remove;
+    }
+
+    return act !is null;
+}
+
+//------------------------------------------------------------------------------
 /// Fire 要素を表す。Bullet を打ち出す。
 class Fire : IActionFunc
-{ mixin SFactory!IActionFunc;
+{ mixin SFactoryMix!IActionFunc;
 
-	string _label; /// label 属性
-	alias IBullet function( Action, IBullet, Vector2f, float, float, RefParam ) BulletGenerator;
-	private BulletGenerator _generator;
-	private IBullet _bullet;
-	private Action _parent;
-	private RefParam _rp;
-	private Direction _direction;
-	private Speed _speed;
+    string _label; /// label 属性
+    alias BulletGenerator =
+        IBullet function(Action, IBullet, Vector2f, float, float, RefParam);
+    private BulletGenerator _generator;
+    private IBullet _bullet;
+    private Action _parent;
+    private RefParam _rp;
+    private Direction _direction;
+    private Speed _speed;
 
-	private void onReset( string label, Action parent, IBullet bul, RefParam rp, Direction dir, Speed speed
-	                    , BulletGenerator bg )
-	{
-		this._label = label; this._parent = parent; this._bullet = bul; this._direction = dir; this._generator = bg;
-		this._rp = rp; this._speed = speed;
-	}
-	private void onRemove()
-	{
-		this._label = null; this._parent = null; this._bullet = null; this._generator = null;
-	}
+    private @trusted pure
+    void onReset(string label, Action parent, IBullet bul, RefParam rp,
+                 Direction dir, Speed speed, BulletGenerator bg)
+    {
+        _label = label; _parent = parent; _bullet = bul; _direction = dir;
+        _generator = bg; _rp = rp; _speed = speed;
+    }
 
-	/// 名前
-	string label() @property const { return _label; }
+    private @trusted @nogc pure nothrow
+    void onRemove()
+    {
+        _label = null; _parent = null; _bullet = null; _generator = null;
+        _rp = null; _direction.clear; _speed.clear;
+    }
 
-	/// Bullet を打ち出す。
-	bool update( ref float term )
-	{
-		assert( _bullet );
-		assert( _bullet.player );
-		assert( _generator );
-		assert( _parent );
-		float heading;
-		float s;
-		if     ( Direction.TYPE.AIM == _direction.type )
-			heading = (_bullet.player.point - _bullet.point ).direction + _direction.dir;
-		else if( Direction.TYPE.SEQUENCE == _direction.type )
-			heading = _parent.fireDirection + _direction.dir;
-		else if( Direction.TYPE.ABSOLUTE == _direction.type )
-			heading = _direction.dir;
-		else if( Direction.TYPE.RELATIVE == _direction.type )
-			heading = _bullet.heading + _direction.dir;
+    /// 名前
+    @property @trusted @nogc pure nothrow
+    string label() const { return _label; }
 
-		if     ( Speed.TYPE.ABSOLUTE == _speed.type )
-			s = _speed.speed;
-		else if( Speed.TYPE.SEQUENCE == _speed.type )
-			s = _parent.fireSpeed + _speed.speed;
-		else if( Speed.TYPE.RELATIVE == _speed.type )
-			s = _bullet.speed + _speed.speed;
-		_generator( _parent, _bullet, _bullet.point, heading, s, _rp );
+    /// Bullet を打ち出す。
+    bool update(ref float term)
+    {
+        assert(_bullet);
+        assert(_bullet.player);
+        assert(_generator);
+        assert(_parent);
+        float heading;
+        float s;
+        final switch(_direction.type)
+        {
+        case Direction.Type.aim:
+            heading = (_bullet.player.point - _bullet.point).direction +
+                _direction.dir;
+            break;
+        case Direction.Type.sequence:
+            heading = _parent.fireDirection + _direction.dir;
+            break;
+        case Direction.Type.absolute:
+            heading = _direction.dir;
+            break;
+        case Direction.Type.relative:
+            heading = _bullet.heading + _direction.dir;
+            break;
+        }
 
-		return false;
-	}
+        final switch(_speed.type)
+        {
+        case Speed.Type.absolute:
+            s = _speed.speed;
+            break;
+        case Speed.Type.sequence:
+            s = _parent.fireSpeed + _speed.speed;
+            break;
+        case Speed.Type.relative:
+            s = _bullet.speed + _speed.speed;
+            break;
+        }
+
+        _generator(_parent, _bullet, _bullet.point, heading, s, _rp);
+
+        return false;
+    }
 }
 
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                init_fire                                 |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_fire( XMLTag xml )
-{
-	string result =
-		"( Action parent, IBullet bul, RefParam rp )"
-		"{"
-		"    Direction direction;";
-	string speed = "Speed()";
-	string generator;
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "bulletref".icmp( child.name ) )
-		{
-			result ~= "rp = " ~ ready_ref(child) ~ "(rp);";
-			generator = "&Bullet_" ~ child["label"];
-		}
-		else if( 0 == "bullet".icmp( child.name ) ) generator = init_bullet(child);
-		else if( 0 == "direction".icmp( child.name ) ) result ~= "direction = " ~ init_direction(child) ~ ";";
-		else if( 0 == "speed".icmp( child.name ) ) speed = init_speed( child );
-	}
-	result ~=
-		"    return Fire( \"" ~ xml["label"] ~ "\", parent, bul, rp, direction, " ~ speed ~ ", " ~ generator ~ " );"
-		"}";
-	return result;
-}
-
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                  Repeat                                  |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// 繰り返し
 class Repeat : IActionFunc
-{ mixin SFactory!IActionFunc;
+{ mixin SFactoryMix!IActionFunc;
 
-	private uint _times, _past;
-	private IActionFunc _act;
-	private IBullet _bullet;
-	private Action _parent;
-	private RefParam _rp;
-	alias Action function( Action, IBullet, RefParam ) ActionInitializer;
-	private ActionInitializer _initializer;
+    private uint _times, _past;
+    private IActionFunc _act;
+    private IBullet _bullet;
+    private Action _parent;
+    private RefParam _rp;
+    alias ActionInitializer = Action function(Action, IBullet, RefParam);
+    private ActionInitializer _initializer;
 
-	private void onReset( Action parent, IBullet bullet, RefParam rp, uint t, ActionInitializer initializer )
-	{
-		this._parent = parent;
-		this._bullet = bullet;
-		this._rp = rp;
-		this._times = t;
-		this._initializer = initializer;
-		_past = 0;
-		_act = null;
-	}
-	private void onRemove()
-	{
-		if( null !is _act ) { _act.remove_all(); _act = null; }
-		_past = _times = 0;
-		_bullet = null;
-		_parent = null;
-	}
+    private @trusted pure
+    void onReset(Action parent, IBullet bullet, RefParam rp, uint t,
+                 ActionInitializer initializer)
+    {
+        _parent = parent; _bullet = bullet; _rp = rp; _times = t;
+        _initializer = initializer;
+        _past = 0;
+        _act = null;
+    }
 
-	/// term フレーム更新する。
-	bool update( ref float term )
-	{
-		for( ; _past < _times && 0f < term ; )
-		{
-			if( null is _act ) { _act = _initializer( _parent, _bullet, _rp ); _past++; }
-			_act.update_all( term );
-		}
-		return _past < _times;
-	}
+    private @trusted
+    void onRemove()
+    {
+        if (null !is _act) _act.remove; _act = null;
+        _past = _times = 0; _bullet = null; _parent = null; _rp = null;
+        _initializer = null;
+    }
+
+    /// term フレーム更新する。
+    bool update(ref float term)
+    {
+        for (; _past < _times && 0f < term ;)
+        {
+            if (null is _act)
+            {
+                _act = _initializer(_parent, _bullet, _rp);
+                ++_past;
+            }
+            _act.updateAll(term);
+        }
+        return _past < _times;
+    }
 }
 
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               init_repeat                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_repeat( XMLTag xml )
-{
-	string times, act, rrp = "rp";
-	string result = "( Action parent, IBullet bul, RefParam rp ){";
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "times".icmp( child.name ) ) times = lazy_number( child.text );
-		else if( 0 == "action".icmp( child.name ) ) act = init_action( child );
-		else if( 0 == "actionref".icmp( child.name ) )
-		{
-			act = "&Action_" ~ child["label"];
-			rrp = ready_ref(child) ~ "(rp)";
-		}
-	}
-	result ~= "return Repeat( parent, bul, " ~ rrp ~ ", cast(uint)(" ~ times ~ "), " ~ act ~ " ); }";
-	return result;
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                   Wait                                   |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// フレーム数を指定して、その分待つ。
 class Wait : IActionFunc
-{ mixin SFactory!IActionFunc;
+{ mixin SFactoryMix!IActionFunc;
 
-	private float _wait, _past;
+    private float _wait, _past;
 
-	void onReset( float w ) { _wait = w; _past = 0; }
-	void onRemove() { _wait = 0.0; _past = 0.0; }
+    @trusted @nogc pure nothrow
+    {
+        void onReset(float w) { _wait = w; _past = 0; }
+        void onRemove() { _wait = 0.0; _past = 0.0; }
+    }
 
-	bool update( ref float term )
-	{
-		if( _past < _wait )
-		{
-			_past += term;
-			term = 0;
-			return true;
-		}
-		else
-		{
-			term -= min( term, _past - _wait );
-			return false;
-		}
-	}
+    bool update(ref float term)
+    {
+        import std.algorithm : min;
+        if (_past < _wait)
+        {
+            _past += term;
+            term = 0;
+            return true;
+        }
+        else
+        {
+            term -= min(term, _past - _wait);
+            return false;
+        }
+    }
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                init_wait                                 |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_wait( XMLTag xml )
-{
-	string result = "( RefParam rp ){";
-	result ~= "return Wait(" ~ lazy_number(xml.text) ~ "); }";
-	return result;
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                             ChangeDirection                              |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// 弾の方向を変える。
 class ChangeDirection : IActionFunc
-{ mixin SFactory!IActionFunc;
+{ mixin SFactoryMix!IActionFunc;
 
-	enum AIM_PRECISION = 0.08; // 謎のマジックナンバー
+    enum AIM_PRECISION = 0.08; // 謎のマジックナンバー
 
-	private Direction _direction;
-	private float _term, _past, _moment;
-	private IBullet _bullet;
+    private Direction _direction;
+    private float _term, _past, _moment;
+    private IBullet _bullet;
 
-	private void onReset( IBullet bul, float term, Direction direction )
-	{
-		this._bullet = bul;
-		this._term = term;
-		this._direction = direction;
-		
-		_past = 0;
-		_moment = 0;
-	}
+    private @trusted @nogc pure nothrow
+    void onReset(IBullet bul, float term, Direction direction)
+    {
+        assert(bul);
+        assert(!term.isNaN);
+        _bullet = bul; _term = term; _direction = direction;
+        _past = 0; _moment = 0;
 
-	private void onRemove(){ _term = 0; _past = 0; _bullet = null; _moment = 0; }
+        final switch(_direction.type)
+        {
+        case Direction.Type.aim:
+            auto delta = (_bullet.player.point - _bullet.point).direction +
+                _direction.dir - _bullet.heading;
+            if      (180 < delta) delta -= 360;
+            else if (delta < -180) delta += 360;
+            _moment = delta / _term * AIM_PRECISION;
+            break;
+        case Direction.Type.relative:
+            _moment = _direction.dir / _term;
+            break;
+        case Direction.Type.absolute:
+            auto delta = _direction.dir - _bullet.heading;
+            if      (180 < delta) delta -= 360;
+            else if (delta < -180) delta += 360;
+            _moment = delta / _term;
+            break;
+        case Direction.Type.sequence:
+            _moment = _direction.dir;
+            break;
+        }
+    }
 
-	/// term フレーム更新する。
-	bool update( ref float term )
-	{
-		if( 0 == _past )
-		{
-			if     ( Direction.TYPE.AIM == _direction.type )
-			{
-				auto delta = (_bullet.player.point - _bullet.point).direction + _direction.dir - _bullet.heading;
-				if     ( 180 < delta ) delta -= 360;
-				else if( delta < -180 ) delta += 360;
-				_moment = delta / this._term * AIM_PRECISION;
-			}
-			else if( Direction.TYPE.RELATIVE == _direction.type )
-			{
-				_moment = _direction.dir / this._term;
-			}
-			else if( Direction.TYPE.ABSOLUTE == _direction.type )
-			{
-				auto delta = _direction.dir - _bullet.heading;
-				if     ( 180 < delta ) delta -= 360;
-				else if( delta < -180 ) delta += 360;
-				_moment = delta / this._term;
-			}
-			else if( Direction.TYPE.SEQUENCE == _direction.type )
-			{
-				_moment = _direction.dir;
-			}
-		}
+    private @trusted @nogc pure nothrow
+    void onRemove(){ _term = _past = _moment = 0; _bullet = null; }
 
-		if( _past < this._term )
-		{
-			auto t = min( _past + term, this._term ) - _past;
-			_bullet.heading = _bullet.heading + _moment * t;
-			_past += term;
-			return true;
-		}
-		else return false;
-	}
-}
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                           init_changedirection                           |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_changedirection( XMLTag xml )
-{
-	string term;
-	string result =
-		"( IBullet bul ){"
-		"    Direction direction;";
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "term".icmp( child.name ) ) term = lazy_number( child.text );
-		else if( 0 == "direction".icmp( child.name ) ) result ~= "direction = " ~ init_direction( child ) ~ ";";
-	}
-	result ~=
-		"    return ChangeDirection( bul, " ~ term ~ ", direction );"
-		"}";
-	return result;
+
+    /// term フレーム更新する。
+    bool update(ref float term)
+    {
+        import std.algorithm : min;
+        import std.math;
+        assert(_bullet);
+        assert(!_term.isNaN);
+        assert(!_past.isNaN);
+        assert(!_moment.isNaN);
+
+        if (_past < _term)
+        {
+            auto t = min(_past + term, _term) - _past;
+            _bullet.heading = _bullet.heading + _moment * t;
+            _past += term;
+            return true;
+        }
+        else return false;
+    }
 }
 
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                  Vanish                                  |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// 弾を消す。(vanish() を実行する。)
 class Vanish : IActionFunc
-{ mixin SFactory!IActionFunc;
-	private IMovable _bullet;
-	private void onReset( IMovable bullet ) { this._bullet = bullet; }
-	private void onRemove() { this._bullet = null; }
+{ mixin SFactoryMix!IActionFunc;
+    private IMovable _bullet;
 
-	/// vanish() を実行する。
-	bool update( ref float term ){ _bullet.vanish(); return false; }
+    @trusted @nogc pure nothrow:
+
+    private
+    void onReset(IMovable bullet) { this._bullet = bullet; }
+
+    private
+    void onRemove() { this._bullet = null; }
+
+    /// vanish() を実行する。
+    bool update(ref float term){ _bullet.vanish; return false; }
 }
 
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                               ChangeSpeed                                |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// 弾の速度を変える。
 class ChangeSpeed : IActionFunc
-{ mixin SFactory!IActionFunc;
-	private IMovable _bullet;
-	private float _accel, _speed, _term, _past;
+{ mixin SFactoryMix!IActionFunc;
+    private IMovable _bullet;
+    private float _accel, _speed, _term, _past;
 
-	private void onReset( IMovable bullet, float term, float speed )
-	{
-		this._bullet = bullet;
-		this._term = term;
-		this._speed = speed;
-		_past = 0;
-	}
-	private void onRemove() { this._bullet = null; _term = _past = 0f; }
+    private @trusted @nogc pure nothrow
+    void onReset(IMovable bullet, float term, float speed)
+    {
+        _bullet = bullet; _term = term; _speed = speed;
+        _past = 0;
+    }
+    private @trusted @nogc pure nothrow
+    void onRemove() { _bullet = null; _term = _past = 0f; }
 
-	bool update( ref float term )
-	{
-		if( 0 == _past )
-		{
-			this._accel = ( this._speed - _bullet.speed ) / this._term;
-		}
-		if( _past < this._term )
-		{
-			auto t = min( _past + term, this._term ) - _past;
-			_bullet.speed = _bullet.speed + (_accel * t);
-			_past += term;
-			return true;
-		}
-		else return false;
-	}
+    bool update(ref float term)
+    {
+        import std.algorithm : min;
+
+        if (0 == _past)
+        {
+            _accel = (_speed - _bullet.speed) / _term;
+        }
+        if (_past < this._term)
+        {
+            auto t = min(_past + term, this._term) - _past;
+            _bullet.speed = _bullet.speed + (_accel * t);
+            _past += term;
+            return true;
+        }
+        else return false;
+    }
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                             init_changespeed                             |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_changespeed( XMLTag xml )
-{
-	string speed, term;
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "speed".icmp( child.name ) ) speed = lazy_number( child.text );
-		else if( 0 == "term".icmp( child.name ) ) term = lazy_number( child.text );
-	}
-	return "( IMovable bul ){ return ChangeSpeed( bul, " ~ term ~ ", " ~ speed ~ " ); }";
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                  Accel                                   |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
 /// X(Y)軸方向に加速する。
 class Accel : IActionFunc
-{ mixin SFactory!IActionFunc;
-	private IMovable _bullet;
-	private float _term, _past;
-	private Vector2f _accel;
+{ mixin SFactoryMix!IActionFunc;
+    private IMovable _bullet;
+    private float _term, _past;
+    private Vector2f _accel;
 
-	private void onReset( IMovable bullet, float term, float ax, float ay )
-	{
-		this._bullet = bullet; this._term = term; this._accel = Vector2f( ax / term, -ay / term );
-		_past = 0;
-	}
-	private void onRemove(){ _bullet = null; _term = _past = 0f; }
+    private @trusted @nogc pure nothrow
+    void onReset(IMovable bullet, float term, float ax, float ay)
+    {
+        _bullet = bullet; _term = term;
+        _accel = Vector2f(ax / term, -ay / term);
+        _past = 0;
+    }
+    private @trusted @nogc pure nothrow
+    void onRemove(){ _bullet = null; _term = _past = 0f; }
 
-	///
-	bool update( ref float term )
-	{
-		if( _past < this._term )
-		{
-			auto t = min( _past + term, this._term ) - _past;
-			auto v = (_bullet.headingVector * _bullet.speed) + (_accel * t);
-			_bullet.speed = v.length;
-			_bullet.heading = v.direction;
-			_past += term;
-			return true;
-		}
-		else return false;
-	}
+    ///
+    bool update(ref float term)
+    {
+        import std.algorithm : min;
+        if (_past < this._term)
+        {
+            auto t = min(_past + term, this._term) - _past;
+            auto v = (_bullet.headingVector * _bullet.speed) + (_accel * t);
+            _bullet.speed = v.length;
+            _bullet.heading = v.direction;
+            _past += term;
+            return true;
+        }
+        else return false;
+    }
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                init_accel                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_accel( XMLTag xml )
-{
-	string result =
-		"( IMovable bul, RefParam rp )"
-		"{";
-	string horz = "0", vert = "0", term = "0";
-	foreach( child ; xml.children )
-	{
-		if     ( 0 == "term".icmp( child.name ) ) term = lazy_number( child.text );
-		else if( 0 == "horizontal".icmp( child.name ) ) horz = lazy_number( child.text );
-		else if( 0 == "vertical".icmp( child.name ) ) vert = lazy_number( child.text );
-	}
-	result ~=
-		"    return Accel( bul, " ~ term ~ ", " ~ horz ~ ", " ~ vert ~ " );"
-		"}";
-	return result;
-}
-
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                ActionRef                                 |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
-/// action を参照する。循環参照によるオーバーフローを軽減する為にワンクッションおく。
+//------------------------------------------------------------------------------
+/// action を参照する。循環参照によるオーバーフローを軽減する為にワンクッション
+/// おく。
 class ActionRef : IActionFunc
-{ mixin SFactory!IActionFunc;
-	private Action _parent;
-	private IBullet _bullet;
-	private RefParam _rp;
-	alias Action function( Action, IBullet, RefParam ) ActionInitializer;
-	private ActionInitializer _initializer;
-	private IActionFunc _act;
+{ mixin SFactoryMix!IActionFunc;
+    private Action _parent;
+    private IBullet _bullet;
+    private RefParam _rp;
+    alias Action function(Action, IBullet, RefParam) ActionInitializer;
+    private ActionInitializer _initializer;
+    private IActionFunc _act;
 
-	private void onReset( Action parent, IBullet bul, RefParam rp, ActionInitializer initializer )
-	{
-		this._parent = parent; this._bullet = bul; this._rp =rp; this._initializer = initializer;
-		_act = null;
-	}
+    private @trusted pure
+    void onReset(Action parent, IBullet bul, RefParam rp,
+                 ActionInitializer initializer)
+    {
+        _parent = parent; _bullet = bul; _rp =rp; _initializer = initializer;
+        _act = null;
+    }
 
-	private void onRemove()
-	{
-		_parent = null; _bullet = null; _initializer = null;
-		if( null !is _act ) { _act.remove_all(); _act = null; }
-	}
+    private @trusted
+    void onRemove()
+    {
+        _parent = null; _bullet = null; _initializer = null;
+        if (null !is _act) { _act.remove; _act = null; }
+    }
 
-	///
-	bool update( ref float term )
-	{
-		if( null is _act && null !is _initializer ) _act = _initializer( _parent, _bullet, _rp );
+    ///
+    bool update(ref float term)
+    {
+        if (null is _act && null !is _initializer)
+            _act = _initializer(_parent, _bullet, _rp);
 
-		if( null !is _act )
-			return _act.update_all( term );
-		else
-			return false;
-	}
+        if (null !is _act)
+            return _act.updateAll(term);
+        else
+            return false;
+    }
 }
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                              init_actionref                              |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string init_actionref( XMLTag xml )
+
+
+//------------------------------------------------------------------------------
+@trusted pure
+string validName(string str)
 {
-	return
-		"( Action parent, IBullet bul, RefParam rp ){"
-		"    return ActionRef( parent, bul, " ~ ready_ref(xml) ~ "(rp), &Action_" ~ xml["label"] ~ " ); }";
+    import std.ascii : isAlphaNum;
+    import std.exception : assumeUnique;
+
+    auto result = new char[str.length];
+    for (size_t i = 0 ; i < str.length ; ++i)
+        result[i] = str[i].isAlphaNum ? str[i] : '_';
+    return result.assumeUnique;
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                ready_ref                                 |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string ready_ref( XMLTag xml )
-{
-	string result =
-		"( RefParam rp )"
-		"{"
-		"    RefParam rrp;"
-		"    rrp[0] = rp[0];";
-	size_t i;
-	foreach( child ; xml.children )
-	{
-		if( 0 == "param".icmp( child.name ) )
-			result ~= "rrp[" ~ (++i).to!string ~ "] = " ~ lazy_number(child.text) ~ ";";
-	}
-	result ~=
-		"    return rrp;"
-		"}";
-	return result;
-}
-
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                               lazy_number                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string lazy_number( string str )
-{
-	for( auto prev = str ; str.findSkip("$") ; prev = str )
-	{
-		if     ( str[0].isDigit )
-			str = prev[ 0 .. $ - str.length - 1 ] ~ "rp[" ~ str[ 0 .. 1 ] ~ "]" ~ str[ 1 .. $ ];
-		else if( str.startsWith( "rand" ) )
-			str = prev[ 0 .. $ - str.length - 1 ] ~ "uniform(0f,1f)" ~ str[ 4 .. $ ];
-		else if( str.startsWith( "rank" ) )
-			str = prev[ 0 .. $ - str.length - 1 ] ~ "rp[0]" ~ str[ 4 .. $ ];
-	}
-	if( 0 == str.length ) str = "0";
-	return str;
-}
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                valid_name                                |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-string valid_name( string str )
-{
-	char[] result = new char[ str.length ];
-	for( size_t i = 0 ; i < str.length ; i++ ) result[i] = str[i].isAlphaNum ? str[i] : '_';
-	return result.assumeUnique;
-}
-
-
-/*############################################################################*\
-|*#                                                                          #*|
-|*#                                utilities                                 #*|
-|*#                                                                          #*|
-\*############################################################################*/
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                              SlistIterator                               |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
-/// sworks.compo.util.factory.ISlist を巡回する。
-struct SlistIterator(TYPE)
-{
-	private TYPE* _top;
-	private TYPE* _tail;
-	private TYPE _prev;
-	TYPE _front;
-	alias _front this;
-
-	this( ref TYPE top )
-	{
-		if( null !is top ) this._top = &top;
-		_front = top;
-		_prev = null;
-	}
-
-	this( ref TYPE top, ref TYPE tail )
-	{
-		this( top );
-		if( null !is tail ) this._tail = &tail;
-	}
-
-	bool empty() @property const { return null is _front; }
-	void popFront()
-	{
-		if( null !is _front )
-		{
-			_prev = _front;
-			_front = _front.next;
-		}
-	}
-	void popAndRemoveFront()
-	{
-		if( null is _front ) return;
-		TYPE a = _front.next;
-		if( null !is _prev ) _prev.next = a;
-		if( (*_top) is _front ) (*_top) = a;
-		if( null !is _tail && (*_tail) is _front ) (*_tail) = _prev;
-
-		_front.remove();
-		_front = a;
-	}
-}
-/// suger
-SlistIterator!TYPE iterator(TYPE)( ref TYPE t ){ return SlistIterator!TYPE( t ); }
-
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                                 RefParam                                 |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
+//------------------------------------------------------------------------------
 /// 設定されていない引数は 0f が返る。
 struct RefParam
 {
-	float[] _val; /// _val[0] == rank
-	void opAssign( in RefParam rp ) { _val = rp._val.dup; }
-	void opAssign( float[] p ... ) { _val = p; }
-	float opIndex( size_t i ) const { return i < _val.length ? _val[i] : 0f; }
-	void opIndexAssign( float val, size_t i )
-	{
-		if( _val.length <= i )
-		{
-			auto pl = _val.length;
-			_val.length = i+1;
-			_val[ pl .. i ] = 0f;
-		}
-		_val[i] = val;
-	}
-	const(float)[] opSlice() const { return _val[]; }
+    private float[] _val; /// _val[0] == rank
+    @trusted pure:
 
-	float rank() @property const { return opIndex(0); }
-	void rank( float r ) @property { opIndexAssign( r, 0 ); }
+    void opAssign(in RefParam rp) { _val = rp._val.dup; }
+    @nogc nothrow
+    void opAssign(float[] p ...) { _val = p; }
+    @nogc nothrow
+    float opIndex(size_t i) const { return i < _val.length ? _val[i] : 0f; }
+    void opIndexAssign(float val, size_t i)
+    {
+        if (_val.length <= i)
+        {
+            auto pl = _val.length;
+            _val.length = i+1;
+            _val[pl .. i] = 0f;
+        }
+        _val[i] = val;
+    }
+    @nogc nothrow
+    const(float)[] opSlice() const { return _val[]; }
+
+    @property @nogc nothrow
+    float rank() const { return opIndex(0); }
+    @property
+    void rank(float r) { opIndexAssign(r, 0); }
 }
 
-
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                              headingMatrix                               |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
-Matrix4f headingMatrix( Vector2f iy )
+//------------------------------------------------------------------------------
+@trusted @nogc pure nothrow
+Matrix4f headingMatrix(Vector2f iy)
 {
-	auto z = Vector3f( 0, 0, 1 );
-	auto x = Vector3f( iy.y, iy.x, 0 );
-	auto y = z.cross(x);
-	return Matrix4f( x.x, y.x, z.x, 0
-	               , x.y, y.y, z.y, 0
-	               , x.z, y.z, z.z, 0
-	               , 0,   0,   0,   1 );
+    auto z = Vector3f(0, 0, 1);
+    auto x = Vector3f(iy.y, iy.x, 0);
+    auto y = z.cross(x);
+    return Matrix4f(x.x, y.x, z.x, 0,
+                    x.y, y.y, z.y, 0,
+                    x.z, y.z, z.z, 0,
+                    0,   0,   0,   1);
 }
 
-/*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*\
-|*|                                Direction                                 |*|
-\*FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF*/
+//------------------------------------------------------------------------------
 // OpenGL スタイルのベクタから BulletML スタイルの角度を取り出す。
-float direction( Vector2f v ) { return -atan2(v.y, v.x) * TO_360 + 90; }
-
-/*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*\
-|*|                                   Bank                                   |*|
-\*SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS*/
-/// sworks.compo.util.factory.Slist を溜める。
-struct Bank(TYPE) if( is( TYPE == class ) || is( TYPE == interface ) )
+@trusted @nogc pure nothrow
+float direction(Vector2f v)
 {
-	SlistAppender!TYPE _stack;
-
-	bool empty() @property const { return _stack.empty; }
-	TYPE front() @property { return _stack.front; }
-	TYPE back() @property { return _stack.back; }
-
-	void opOpAssign( string OP : "+" )( TYPE b ) { _stack.put( b ); }
-	SlistIterator!TYPE iterator() @property { return SlistIterator!TYPE( _stack.front, _stack.back ); }
-
-	void clear() { _stack.reset; }
-
-	static if( is( TYPE : IBullet ) )
-	{
-		ActiveIBulletsIterator activeBullets() @property { return ActiveIBulletsIterator( _stack.front ); }
-	}
-
+    import std.math : atan2;
+    return -atan2(v.y, v.x) * TO_360 + 90;
 }
-alias Bank!IBullet BulletBank;
 
-/*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*\
-|*|                                BulletData                                |*|
-\*CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC*/
+//------------------------------------------------------------------------------
+///
+alias BulletIterator = SlistIterator!IBullet;
+
+//------------------------------------------------------------------------------
+///
 class BulletData { }
 
-////////////////////XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\\\\\\\\\\\\\\\\\\\\
-////                                                                        \\\\
-////                                 DEBUG                                  \\\\
-////                                                                        \\\\
-////////////////////XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\\\\\\\\\\\\\\\\\\\\
+//##############################################################################
+//
+// parser
+//
+
+string defBMLMembers(string filecont)
+{
+    import std.array : Appender, join;
+    import std.algorithm : startsWith;
+    import std.conv : to;
+
+    auto xml = cast(XML)filecont.toXML!(XML_PARSER_PROPERTY.LOWER_CASE);
+
+    Appender!(string[]) firstActions;
+    Appender!(string[]) app;
+    app.put(["enum type = Type.", xml.attr.get("type", "none"), ";",
+             "import std.random : uniform;"]);
+    foreach (i, one; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+
+        auto label =
+            child.attr.get("label", "anonymous_" ~ i.to!string).validName;
+
+        switch(child.name)
+        {
+        case "action":
+            if (label.startsWith("top")) firstActions.put(label);
+            app.put(["static Action Action_", label, initAction(label, child)]);
+            break;
+        case "bullet":
+            app.put(["static IBullet Bullet_", label,
+                     initBullet(label, child)]);
+            break;
+        case "fire":
+            app.put(["static Fire Fire_", label, initFire(label, child)]);
+            break;
+        default:
+            assert(0);
+        }
+
+    }
+
+    app.put(["void onReset(IPlayer player, Vector2f p, float h,",
+             "             float speed, float rank)",
+             "{", q{
+                    SlistAppender!IActionFunc app;
+                    onReset(player, filename, p, h, speed);
+                    RefParam rp;
+                    rp[0] = rank;
+                }]);
+
+    foreach (one; firstActions.data)
+        app.put(["app.put(Action_", one, "(null, this, rp));"]);
+
+    app.put("    _action = app.flush;"
+            "}");
+    return app.data.join;
+}
+
+//------------------------------------------------------------------------------
+string initAction(string label, XML xml)
+{
+    import std.array : Appender, join;
+
+    Appender!(string[]) app;
+    app.put(["(Action parent, IBullet bul, RefParam rp)",
+             "{",
+             "    SlistAppender!IActionFunc app;",
+             "    RefParam rrp;",
+             "    auto act = Action(\"", label, "\");"
+             "    auto p = null !is parent ? parent : act;"]);
+
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+
+        switch(child.name)
+        {
+        case "repeat":
+            app.put(["app.put(", initRepeat(child), "(p, bul, rp));"]);
+            break;
+        case "wait":
+            app.put(["app.put(", initWait(child),"(rp));"]);
+            break;
+        case "fire":
+            app.put(["app.put(", initFire("", child), "(p, bul, rp));"]);
+            break;
+        case "fireref":
+            app.put(["rrp = ", readyRef(child), "(rp);",
+                     "app.put(Fire_", child.attr["label"], "(p, bul, rrp));"]);
+            break;
+        case "changespeed":
+            app.put(["app.put(", initChangespeed(child), "(bul));"]);
+            break;
+        case "changedirection":
+            app.put(["app.put(", initChangedirection(child), "(bul));"]);
+            break;
+        case "accel":
+            app.put(["app.put(", initAccel(child), "(bul, rp));"]);
+            break;
+        case "vanish":
+            app.put("app.put(Vanish(bul));");
+            break;
+        case "action":
+            app.put(["app.put(", initAction(child.attr["label"], child),
+                     "(p, bul, rp));"]);
+            break;
+        case "actionref":
+            app.put(["app.put(", initActionref(child), "(p, bul, rp));"]);
+            break;
+        default: assert(0);
+        }
+    }
+    app.put(["    act._children = app.flush;",
+             "    return act;",
+             "}",]);
+    return app.data.join;
+}
+
+//------------------------------------------------------------------------------
+string initFire(string label, XML xml)
+{
+    import std.array : Appender, join;
+
+    Appender!(string[]) app;
+
+    app.put(["(Action parent, IBullet bul, RefParam rp)",
+             "{",
+             "    Direction direction;",]);
+    string speed = "Speed()";
+    string generator;
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+
+        switch(child.name)
+        {
+        case "bulletref":
+            app.put(["rp = ", readyRef(child), "(rp);"]);
+            generator = "&Bullet_" ~ child.attr["label"];
+            break;
+        case "bullet":
+            generator = initBullet("", child);
+            break;
+        case "direction":
+            app.put(["direction = ", initDirection(child), ";"]);
+            break;
+        case "speed":
+            speed = initSpeed(child);
+            break;
+        case "bulletRef":
+            assert(0);
+        default:
+            assert(0, child.name);
+        }
+    }
+    app.put(["    return Fire(\"", label, "\", parent, bul, rp, direction, ",
+             speed, ", ", generator, ");",
+             "}"]);
+    return app.data.join;
+}
+
+//------------------------------------------------------------------------------
+string initBullet(string label, XML xml)
+{
+    import std.array : Appender, join;
+    Appender!(string[]) app;
+
+    app.put(["(Action act, IBullet parent, Vector2f p, float h, float speed,",
+             "RefParam rp)",
+             "{",
+             "    SlistAppender!IActionFunc app;",
+             "    auto b = Bullet(parent, \"", label, "\", p, h, speed);"]);
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        switch (child.name)
+        {
+        case "action":
+            app.put(["app.put(", initAction(child.attr["label"], child),
+                     "(null, b, rp));"]);
+            break;
+        case "speed":
+            app.put(["if (float.nan is speed){ b.speed = ",
+                     initLazyNumber(child.searchText), ";}"]);
+            break;
+        default:
+            assert(0);
+        }
+
+    }
+    app.put(["    b._action = app.flush;",
+             "    parent.fireNotice(b);",
+             "    act.fireNotice(b);",
+             "    parent.player.fireNotice(b);",
+             "    return cast(IBullet)b;",
+             "}"]);
+    return app.data.join;
+}
+
+//------------------------------------------------------------------------------
+string initRepeat(XML xml)
+{
+    import std.array : join;
+
+    string times, act, rrp = "rp";
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        switch(child.name)
+        {
+        case "times":
+            times = initLazyNumber(child.searchText);
+            break;
+        case "action":
+            act = initAction(child.attr["label"], child);
+            break;
+        case "actionref":
+            act = ["&Action_", child.attr["label"]].join;
+            rrp = [readyRef(child), "(rp)"].join;
+            break;
+        default:
+        }
+    }
+    return ["(Action parent, IBullet bul, RefParam rp){"
+            "return Repeat(parent, bul, ", rrp, ", cast(uint)(", times, "), ",
+            act, "); }"].join;
+}
+
+//------------------------------------------------------------------------------
+string initLazyNumber(string str)
+{
+    import std.array : join;
+    import std.algorithm : findSkip, startsWith;
+    import std.ascii : isDigit;
+
+    for (auto prev = str ; str.findSkip("$") ; prev = str)
+    {
+        if      (str[0].isDigit)
+            str = [prev[0 .. $ - str.length - 1], "rp[", str[0 .. 1], "]",
+                   str[1 .. $]].join;
+        else if (str.startsWith("rand"))
+            str = [prev[0 .. $ - str.length - 1], "uniform(0f,1f)",
+                   str[4 .. $]].join;
+        else if (str.startsWith("rank"))
+            str = [prev[0 .. $ - str.length - 1], "rp[0]", str[4 .. $]].join;
+    }
+    if (0 == str.length) str = "0";
+    return str;
+}
+
+//------------------------------------------------------------------------------
+string readyRef(XML xml)
+{
+    import std.conv : to;
+    import std.array : Appender, join;
+    Appender!(string[]) app;
+    app.put("(RefParam rp)"
+            "{"
+            "    RefParam rrp;"
+            "    rrp[0] = rp[0];");
+
+    size_t i;
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        if (child.name == "param")
+            app.put(["rrp[", (++i).to!string, "] = ",
+                     initLazyNumber(child.searchText), ";"]);
+    }
+    app.put("    return rrp;"
+            "}");
+    return app.data.join;
+}
+
+//------------------------------------------------------------------------------
+string initDirection(XML xml)
+{
+    import std.array : join;
+    string type;
+    switch (xml.attr["type"])
+    {
+    case "absolute":
+        type = "Direction.Type.absolute";
+        break;
+    case "relative":
+        type = "Direction.Type.relative";
+        break;
+    case "sequence":
+        type = "Direction.Type.sequence";
+        break;
+    default:
+        type = "Direction.Type.aim";
+    }
+
+    return ["Direction(", type, ", ", initLazyNumber(xml.searchText), ")"].join;
+}
+
+//------------------------------------------------------------------------------
+string initWait(XML xml)
+{
+    import std.array : join;
+    return ["(RefParam rp){ return Wait(", initLazyNumber(xml.searchText),
+            "); }"].join;
+}
+
+
+//------------------------------------------------------------------------------
+string initChangedirection(XML xml)
+{
+    import std.array : Appender, join;
+
+    string term = "0";
+    Appender!(string[]) app;
+    app.put("(IBullet bul){"
+            "    Direction direction;"
+            "    float term = 0;");
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        switch (child.name)
+        {
+        case "term":
+            app.put(["term = ", initLazyNumber(child.searchText), ";"]);
+            break;
+        case "direction":
+            app.put(["direction = ", initDirection(child), ";"]);
+            break;
+        default:
+            assert(0, child.name);
+        }
+    }
+    app.put("    return ChangeDirection(bul, term, direction);"
+            "}");
+    return app.data.join;
+}
+
+
+//------------------------------------------------------------------------------
+string initSpeed(XML xml)
+{
+    import std.array : join;
+    string type;
+    switch (xml.attr["type"])
+    {
+    case "relative":
+        type = "Speed.Type.relative";
+        break;
+    case "sequence":
+        type = "Speed.Type.sequence";
+        break;
+    default:
+        type = "Speed.Type.absolute";
+    }
+    return ["Speed(", type, ", ", initLazyNumber(xml.searchText), ")"].join;
+}
+
+//------------------------------------------------------------------------------
+string initChangespeed(XML xml)
+{
+    import std.array : join;
+    string speed = "0", term = "0";
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        switch (child.name)
+        {
+        case "speed":
+            speed = initLazyNumber(child.searchText);
+            break;
+        case "term":
+            term = initLazyNumber(child.searchText);
+            break;
+        default:
+            assert(0);
+        }
+    }
+    return ["(IMovable bul){ return ChangeSpeed(bul, ", term, ", ", speed,
+            "); }"].join;
+}
+
+//------------------------------------------------------------------------------
+
+string initActionref(XML xml)
+{
+    import std.array : join;
+    return
+        ["(Action parent, IBullet bul, RefParam rp){"
+         "    return ActionRef(parent, bul, ", readyRef(xml),
+         "(rp), &Action_", xml.attr["label"], "); }"].join;
+}
+
+//------------------------------------------------------------------------------
+string initAccel(XML xml)
+{
+    import std.array : join;
+    string horz = "0", vert = "0", term = "0";
+    foreach (one ; xml.children)
+    {
+        auto child = cast(XML)one;
+        if (child is null) continue;
+        switch (child.name)
+        {
+        case "term":
+            term = initLazyNumber(child.searchText);
+            break;
+        case "horizontal":
+            horz = initLazyNumber(child.searchText);
+            break;
+        case "vertical":
+            vert = initLazyNumber(child.searchText);
+            break;
+        default:
+            assert(0);
+        }
+    }
+    return
+        ["(IMovable bul, RefParam rp)"
+         "{"
+         "    return Accel(bul, ", term, ", ", horz, ", ", vert, ");"
+         "}"].join;
+}
+
+
+
+//XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+// DEBUG
 debug(bulletml):
 import std.math;
-import sworks.compo.sdl.util;
-import sworks.compo.sdl.gl;
-import sworks.compo.sdl.image;
-import sworks.compo.gl.glsl;
-import sworks.compo.util.dump_members;
-
-class BMLTest : IPlayer
-{ mixin SDLIdleWindowMix!() SWM;
-
-	enum WIDTH = 640;
-	enum HEIGHT = 480;
-	
-	BulletBank battery;
-
-	Drawer drawer;
-	PlaneDrawer plane;
-	CannonDrawer cannon;
-	BulletsDrawer bullets;
-	SmokeManager smoke;
-	Setsumei setsumei;
-
-	this()
-	{
-		SWM.ctor( SDL_INIT_VIDEO, "BulletML Test", WIDTH, HEIGHT, SDL_WINDOW_OPENGL, 30
-		        , getImageInitializer( IMG_INIT_JPG )
-		        , getGLInitializer( true, 0, 8, 8, 8, 8 ) );
-		DerelictGL3.reload();
-
-		glClearColor( 0.2, 0.2, 0.2, 1.0 );
-
-		glViewport( 0, 0, WIDTH, HEIGHT );
-
-		glEnable( GL_CULL_FACE );
-		glCullFace( GL_BACK );
-
-		glEnable( GL_BLEND );
-		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-
-		drawer = new Drawer( WIDTH, HEIGHT );
-		plane = new PlaneDrawer( drawer, Vector2f( 1, 0 ) );
-		cannon = new CannonDrawer( drawer, 200, 0 );
-		bullets = new BulletsDrawer( plane );
-		smoke = new SmokeManager( drawer );
-		setsumei = new Setsumei( "img\\setsumei.jpg" );
-
-		IBullet b;
-		battery += b = BulletMLIterator.newBullet( this, 0.5, plane.heading, cannon.pos );
-		SDL_SetWindowTitle( window, b.label.ptr );
-
-	}
-
-	Vector2f point() @property { return plane.pos; }
-	void fireNotice( IBullet bullet )
-	{
-		if( null is bullet.parent || null is bullet.parent.data )
-			bullet.data = new MyBulletData( uniform( 0.4f, 1f ), uniform( 0.4f, 1f ), uniform( 0.4f, 1f ), 1.0 );
-		else
-			bullet.data = bullet.parent.data;
-	}
-	
-	void clear()
-	{
-		setsumei.clear;
-		smoke.clear;
-		cannon.clear;
-		plane.clear;
-		drawer.clear;
-		SWM.dtor();
-	}
-
-	uint shot_interval;
-	void update( uint interval )
-	{
-		auto term = (cast(float)interval) * 0.06f;
-		auto t = term;
-		smoke.update( term );
-
-		bool is_alive = false;
-
-		for( auto ite = battery.iterator ; !ite.empty ; )
-		{
-			if( ite.isActive || ite.hasActiveBullets )
-			{
-				ite.update( term );
-				is_alive |= ite.isActive;
-
-				for( auto i = ite.activeBullets ; !i.empty ; i.popFront )
-				{
-					if( plane.pos.distanceSq( i.point ) <= 50 ) smoke.hit( i.point );
-					if( i.point.x < -WIDTH*0.5 || WIDTH*0.5 < i.point.x
-					  || i.point.y < -HEIGHT*0.5 || HEIGHT*0.5+100 < i.point.y ) i.vanish;
-				}
-
-				ite.popFront;
-			}
-			else ite.popAndRemoveFront;
-		}
-
-		if( !is_alive )
-		{
-			shot_interval += interval;
-			if( 1000 < shot_interval )
-			{
-				IBullet b;
-				battery += b = BulletMLIterator.newBullet( this, 0.5, plane.heading, cannon.pos );
-				SDL_SetWindowTitle( window, b.label.ptr );
-				shot_interval = 0;
-			}
-		}
-
-	}
-
-	void draw()
-	{
-		glClear( GL_COLOR_BUFFER_BIT );
-
-		setsumei.draw();
-		cannon.draw();
-		smoke.draw();
-		plane.draw();
-
-		for( auto ite = battery.activeBullets ; !ite.empty ; ite.popFront )
-			if( !ite.willVanish && null !is ite.parent ) bullets.draw( ite );
-
-		SDL_GL_SwapWindow( window );
-	}
-
-	void sdl_mousemotion( ref SDL_MouseMotionEvent e )
-	{
-		int x = cast(int)( e.x - WIDTH * 0.5);
-		int y = -cast(int)( e.y - HEIGHT * 0.5);
-		plane.update( x, y );
-	}
-
-	void sdl_mousebuttondown( ref SDL_MouseButtonEvent e )
-	{
-		if( 1 == e.button )
-		{
-			for( auto ite = battery.iterator ; !ite.empty ; ite.popFront ) ite.vanish;
-			BulletMLIterator.nextBullet();
-			IBullet b;
-			battery += b = BulletMLIterator.newBullet( this, 0.5, plane.heading, cannon.pos );
-			SDL_SetWindowTitle( window, b.label.ptr );
-		}
-	}
-}
+import sworks.sdl.util;
+import sworks.sdl.gl;
+import sworks.sdl.image;
+import sworks.gl.glsl;
+import sworks.base.dump_members;
 
 void main()
 {
-	auto wnd = new BMLTest;
-	scope( exit ) wnd.clear;
-	wnd.mainLoop;
+    setDLLDir("bin64");
+    auto wnd = new BMLTest;
+    scope(exit) wnd.clear;
+    wnd.start;
 }
+
+class BMLTest
+{ mixin SDLIdleMix!() SWM;
+static:
+    enum WIDTH = 640;
+    enum HEIGHT = 480;
+    enum hitDistanceSq = 50;
+
+    GLWindow window;
+    IBullet battery;
+
+    Drawer drawer;
+    PlaneDrawer plane;     /// Player's plane.
+    CannonDrawer cannon;
+    BulletsDrawer bullets;
+    SmokeManager smoke;
+    Setsumei setsumei;
+
+
+    this()
+    {
+        SWM.init(SDL_INIT_VIDEO, 33,
+                 getImageInitializer(IMG_INIT_JPG),
+                 getGLInitializer!DerelictGL3(true, 0, 8, 8, 8, 8),
+                 {
+                     window = new GLWindow("BulletML Test", WIDTH, HEIGHT);
+                     return cast(SDLExtQuitDel){};
+                 });
+        reloadGL(3.0, 1.30);
+
+        glClearColor(0.2, 0.2, 0.2, 1.0);
+
+        glViewport(0, 0, WIDTH, HEIGHT);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        drawer = new Drawer(WIDTH, HEIGHT);
+        plane = new PlaneDrawer(drawer, Vector2f(1, 0));
+        cannon = new CannonDrawer(drawer, 200, 0);
+        bullets = new BulletsDrawer(drawer);
+        smoke = new SmokeManager(drawer);
+
+        version      (Windows)
+            setsumei = new Setsumei("img\\setsumei.jpg");
+        else version (linux)
+            setsumei = new Setsumei("img/setsumei.jpg");
+
+        genBullet;
+    }
+
+    void genBullet()
+    {
+        auto b = BulletManager.newBullet(plane, 0.5, plane.heading, cannon.pos,
+                                         cannon.heading);
+        battery.pushFront(b);
+        SDL_SetWindowTitle(window, b.label.ptr);
+    }
+
+
+    void clear()
+    {
+        setsumei.clear;
+        Drawer.clearAll;
+        SWM.clear;
+    }
+
+    static bool isOutOfWindow(Vector2f pos)
+    {
+        return
+            pos.x < -WIDTH*0.5 || WIDTH*0.5 < pos.x ||
+            pos.y < -HEIGHT*0.5 || HEIGHT*0.5+100 < pos.y;
+    }
+
+
+    private uint _shotInterval;
+    void update(uint interval)
+    {
+        auto term = (cast(float)interval) * 0.06f;
+
+        smoke.update(term);
+
+        bool is_alive = false;
+
+        for (auto ite = battery.iterator ; !ite.empty ;)
+        {
+            if (ite.alive || ite.hasChild)
+            {
+                ite.update(term);
+                is_alive |= ite.alive;
+                ite.popFront;
+            }
+            else ite.removeFront.remove;
+        }
+
+        if (battery !is null) foreach (one; battery)
+        {
+            if      (one.willVanish){}
+            else if (isOutOfWindow(one.point)) one.vanish;
+            else if (plane.pos.distanceSq(one.point) <= 50)
+                smoke.hit(one.point);
+        }
+
+        if (!is_alive)
+        {
+            _shotInterval += interval;
+            if (1000 < _shotInterval)
+            {
+                genBullet;
+                _shotInterval = 0;
+            }
+        }
+    }
+
+    void draw()
+    {
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        setsumei.draw();
+
+        smoke.draw();
+
+        if (battery !is null) foreach (one; battery)
+            if (!one.willVanish && one.parent !is null)
+                bullets.draw(one);
+
+        cannon.draw;
+        plane.draw;
+
+        SDL_GL_SwapWindow(window);
+    }
+    void sdl_mousemotion(in ref SDL_MouseMotionEvent e)
+    {
+        int x = cast(int)(e.x - WIDTH * 0.5);
+        int y = -cast(int)(e.y - HEIGHT * 0.5);
+        plane.update(x, y);
+    }
+
+    void sdl_mousebuttondown(in ref SDL_MouseButtonEvent e)
+    {
+        if (1 == e.button)
+        {
+            for (auto ite = battery.iterator; !ite.empty;)
+                ite.popFront.vanish;
+            BulletManager.nextBullet;
+            _shotInterval = 0;
+            genBullet;
+        }
+    }
+}
+
+
 
 class MyBulletData : BulletData
 {
-	float[4] color;
-	this( float[4] c ... ){ color[] = c; }
+    float[4] color;
+    this(float[4] c ...){ color[] = c; }
 }
 
-struct BulletMLIterator
+struct BulletManager
 {
-	enum BML_COUNT = 19;
-	alias BulletML!"test-bml1.xml" Test1;
-	alias BulletML!"test-bml2.xml" Test2;
-	alias BulletML!"test-bml3.xml" Test3;
-	alias BulletML!"[1943]_rolling_fire.xml" RollingFire;
-	alias BulletML!"[Guwange]_round_2_boss_circle_fire.xml" CircleFire;
-	alias BulletML!"[Guwange]_round_3_boss_fast_3way.xml" Fast3Way;
-	alias BulletML!"[Guwange]_round_4_boss_eye_ball.xml" EyeBall;
-	alias BulletML!"[G_DARIUS]_homing_laser.xml" HoamingLaser;
-	alias BulletML!"[Progear]_round_1_boss_grow_bullets.xml" GrowBullets;
-	alias BulletML!"[Progear]_round_2_boss_struggling.xml" Struggling;
-	alias BulletML!"[Progear]_round_3_boss_back_burst.xml" BackBurst;
-	alias BulletML!"[Progear]_round_3_boss_wave_bullets.xml" WaveBullets;
-	alias BulletML!"[Progear]_round_4_boss_fast_rocket.xml" FastRocket;
-	alias BulletML!"[Progear]_round_5_boss_last_round_wave.xml" LastRoundWave;
-	alias BulletML!"[Progear]_round_6_boss_parabola_shot.xml" ParabolaShot;
-	alias BulletML!"[Psyvariar]_X-A_boss_opening.xml" BossOpening;
-	alias BulletML!"[Psyvariar]_X-A_boss_winder.xml" Winder;
-	alias BulletML!"[Psyvariar]_X-B_colony_shape_satellite.xml" ColonyShapeSatellite;
-	alias BulletML!"[XEVIOUS]_garu_zakato.xml" GaruZakato;
+    import std.typetuple : TypeTuple;
 
-	static uint current;
+    alias Data = TypeTuple!(
+        Bullet!"test-bml1.xml",
+        Bullet!"test-bml2.xml",
+        Bullet!"test-bml3.xml",
+        Bullet!"[1943]_rolling_fire.xml",
+        Bullet!"[Guwange]_round_2_boss_circle_fire.xml",
+        Bullet!"[Guwange]_round_3_boss_fast_3way.xml",
+        Bullet!"[Guwange]_round_4_boss_eye_ball.xml",
+        Bullet!"[G_DARIUS]_homing_laser.xml",
+        Bullet!"[Progear]_round_1_boss_grow_bullets.xml",
+        Bullet!"[Progear]_round_2_boss_struggling.xml",
+        Bullet!"[Progear]_round_3_boss_back_burst.xml",
+        Bullet!"[Progear]_round_3_boss_wave_bullets.xml",
+        Bullet!"[Progear]_round_4_boss_fast_rocket.xml",
+        Bullet!"[Progear]_round_5_boss_last_round_wave.xml",
 
-	static IBullet newBullet( IPlayer player, float rank
-	                        , ref Vector2f player_heading, ref Vector2f cannon_pos )
-	{
-		IBullet _call(T)( )
-		{
-			float heading = 0;
-			if( IBullet.TYPE.HORIZONTAL == T.type )
-			{
-				heading = 270;
-				player_heading = Vector2f( 1, 0 );
-				cannon_pos = Vector2f( uniform( 180f, 220f ), uniform( -100f, 100f ) );
-			}
-			else
-			{
-				heading = 180;
-				player_heading = Vector2f( 0, 1 );
-				cannon_pos = Vector2f( uniform( -150f, 150f ), uniform( 130f, 180f ) );
-			}
-			return T( player, cannon_pos, heading, 0, rank );
-		}
-		if     ( 0 == current ) return _call!Test1();
-		else if( 1 == current ) return _call!Test2();
-		else if( 2 == current ) return _call!Test3();
-		else if( 3 == current ) return _call!RollingFire();
-		else if( 4 == current ) return _call!CircleFire();
-		else if( 5 == current ) return _call!Fast3Way();
-		else if( 6 == current ) return _call!EyeBall();
-		else if( 7 == current ) return _call!HoamingLaser();
-		else if( 8 == current ) return _call!GrowBullets();
-		else if( 9 == current ) return _call!Struggling();
-		else if( 10 == current ) return _call!BackBurst();
-		else if( 11 == current ) return _call!WaveBullets();
-		else if( 12 == current ) return _call!FastRocket();
-		else if( 13 == current ) return _call!LastRoundWave();
-		else if( 14 == current ) return _call!ParabolaShot();
-		else if( 15 == current ) return _call!BossOpening();
-		else if( 16 == current ) return _call!Winder();
-		else if( 17 == current ) return _call!ColonyShapeSatellite();
-		else if( 18 == current ) return _call!GaruZakato();
+        Bullet!"[Progear]_round_6_boss_parabola_shot.xml",
 
-		else return null;
-	}
+        Bullet!"[Psyvariar]_X-A_boss_opening.xml",
+        Bullet!"[Psyvariar]_X-A_boss_winder.xml",
+        Bullet!"[Psyvariar]_X-B_colony_shape_satellite.xml",
+        Bullet!"[XEVIOUS]_garu_zakato.xml",
+);
 
-	static void nextBullet()
-	{
-		current++;
-		if( BML_COUNT <= current ) current -= BML_COUNT;
-	}
+    static size_t current;
+
+    static
+    IBullet newBullet(IPlayer player, float rank,
+                      ref Vector2f player_heading, ref Vector2f cannon_pos,
+                      ref Vector2f cannon_heading)
+    {
+        IBullet _call(T)()
+        {
+            import std.random : uniform;
+            float heading = 0;
+            if (IBullet.Type.horizontal == T.type)
+            {
+                heading = 270;
+                player_heading = Vector2f(1, 0);
+                cannon_heading = Vector2f(-1, 0);
+                cannon_pos = Vector2f(uniform(180f, 220f),
+                                      uniform(-100f, 100f));
+            }
+            else
+            {
+                heading = 180;
+                player_heading = Vector2f(0, 1);
+                cannon_heading = Vector2f(0, -1);
+                cannon_pos = Vector2f(uniform(-150f, 150f),
+                                      uniform(130f, 180f));
+            }
+            return T(player, cannon_pos, heading, 0, rank);
+        }
+        foreach (i, one; Data)
+            if (i == current) return _call!one;
+        return null;
+    }
+
+    static void nextBullet()
+    {
+        ++current;
+        if (Data.length <= current) current = 0;
+    }
 }
 
 class Drawer
 {
-	string vertex_shader =
-	q{#version 420
-		uniform mat4 world;
-		in vec2 pos;
-		void main() { gl_Position = world * vec4(pos, 0.0, 1.0); }
-	};
+    Matrix4f projlook;
+    TetrahedronLine tl;
 
-	string fragment_shader =
-	q{#version 420
-		uniform vec4 color;
-		layout( location = 0 ) out vec4 colorOut;
-		void main() { colorOut = color; }
-	};
+    IdentityCubePoly cp;
 
-	struct Vertex { float[2] pos; }
+    this(int w, int h)
+    {
+        projlook =
+            orthoMatrix4f(-w * 0.5, w * 0.5, -h * 0.5, h * 0.5, 0, 20) *
+            lookAtMatrix4f([0, 0, 10], [0, 0, 0], [0, 1, 0]);
 
-	Shader vs, fs;
-	ShaderProgram prog;
-	Matrix4f projlook;
-	Matrix4f world;
-	GLuint world_loc, color_loc;
+        tl = new TetrahedronLine;
+        tl.size = scaleMatrix4f(5, 10, 5);
+        cp = new IdentityCubePoly;
+    }
 
-	this( int w, int h )
-	{
-		vs = new Shader( GL_VERTEX_SHADER, vertex_shader );
-		fs = new Shader( GL_FRAGMENT_SHADER, fragment_shader );
-		prog = (new ShaderProgram( vs, fs )).link;
-		world_loc = prog.world;
-		color_loc = prog.color;
-		projlook = Matrix4f.orthoMatrix( -w * 0.5, w * 0.5, -h * 0.5, h * 0.5, 0, 20 )
-		         * Matrix4f.lookAtMatrix( [ 0, 0, 10 ], [ 0, 0, 0 ], [ 0, 1, 0 ] );
-	}
+    void drawTri(float[2] pos, Vector2f heading, float[4] color)
+    {
+        tl.diffuse = Color4f(color);
+        tl.pos = translateMatrix4f(pos[0], pos[1], 0) * headingMatrix(heading);
+        tl.draw(projlook);
+    }
 
-	void update( float[2] pos, Vector2f heading, float[4] color )
-	{
-		world = projlook * Matrix4f.translateMatrix( pos[0], pos[1], 0 ) * headingMatrix( heading );
-		prog[ world_loc ] = world;
-		prog[ color_loc ] = color;
-	}
+    void drawCube(float[2] pos, Vector2f heading, float size, float[4] color)
+    {
+        cp.diffuse = Color4f(color);
+        cp.pos = translateMatrix4f(pos[0], pos[1], 0) * headingMatrix(heading);
+        cp.size = scaleMatrix4f(size, size, size);
+        cp.draw(projlook);
 
-	void clear()
-	{
-		if( null !is prog ) { prog.clear(); prog = null; }
-		if( null !is vs ) { vs.clear(); vs = null; }
-		if( null !is fs ) { fs.clear(); fs = null; }
-	}
+    }
+
+    static void clearAll()
+    {
+        TetrahedronLine.clearAll;
+        IdentityCubePoly.clearAll;
+    }
 }
 
-class PlaneDrawer
+class PlaneDrawer : IPlayer
 {
-	Drawer drawer;
-	VertexArrayObject vao;
+    Drawer drawer;
 
-	void delegate() _draw;
+    float[4] color;
+    Vector2f pos;
+    float x, y;
+    Vector2f heading;
 
-	alias Drawer.Vertex Vertex;
-	Vertex[] vertex = [ Vertex([ 0, 10 ]), Vertex([ -5, -5 ]), Vertex([ 5, -5 ]) ];
-	ushort[] index = [ 0, 1, 2 ];
-	float[4] color;
-	Vector2f pos;
-	float x, y;
-	Vector2f heading;
+    this(Drawer d, Vector2f h)
+    {
+        drawer = d;
+        heading = h;
+        color = [1f, 1, 1, 1];
+        x = 0; y = -150;
+    }
 
-	this( Drawer d, Vector2f h )
-	{
-		this.drawer = d;
-		this.heading = h;
-		this.color = [ 1f, 1, 1, 1 ];
-		x = 0; y = -150;
-		vao = new VertexArrayObject( drawer.prog, vertex );
-		_draw = vao.getDrawer!GL_LINE_LOOP( index );
-	}
+    void update(float[2] p ...) { pos[] = p; }
 
-	void update( float[2] p ... ) { this.pos = p; }
+    void draw() { drawer.drawTri(pos, heading, color); }
 
-	void draw( ) { drawer.update( pos, heading, color ); _draw(); }
-	void clear() { vao.clear;}
+    @property @trusted @nogc pure nothrow
+    Vector2f point() const { return pos; }
+
+    void fireNotice(IBullet bullet)
+    {
+        import std.random : uniform;
+
+        if (null is bullet.parent || null is bullet.parent.data)
+            bullet.data = new MyBulletData(uniform(0.4f, 1f), uniform(0.4f, 1f),
+                                           uniform(0.4f, 1f), 1.0);
+        else
+            bullet.data = bullet.parent.data;
+    }
 }
 
 class CannonDrawer
 {
-	Drawer drawer;
-	VertexArrayObject vao;
-	void delegate() _draw;
-	alias Drawer.Vertex Vertex;
-	Vertex[] vertex = [ Vertex([-10, 10]), Vertex([-10, -10]), Vertex([10, -10]), Vertex([10, 10]) ];
-	ushort[] index = [ 0, 1, 2, 3 ];
-	float[4] color;
-	Vector2f pos;
+    Drawer drawer;
+    float[4] color;
+    Vector2f pos;
+    Vector2f heading;
 
-	this( Drawer d, float x, float y )
-	{
-		this.drawer = d;
-		this.pos = Vector2f( x, y );
-		this.color = [ 1f, 0, 0, 1 ];
-		vao = new VertexArrayObject( drawer.prog, vertex );
-		_draw = vao.getDrawer!GL_LINE_LOOP( index );
-	}
-	void draw(){ drawer.update( pos, Vector2f( 0, 1 ), color ); _draw(); }
-	void clear(){ vao.clear; }
+    this(Drawer d, float x, float y)
+    {
+        drawer = d;
+        pos = Vector2f(x, y);
+        color = [1f, 0, 0, 1];
+        heading = Vector2f(0, 1);
+    }
+    void draw() { drawer.drawTri(pos, heading, color); }
 }
-
 
 class BulletsDrawer
 {
-	PlaneDrawer pd;
-	float[4] color;
+    Drawer drawer;
+    float[4] color;
 
-	this( PlaneDrawer pd )
-	{
-		this.pd = pd;
-		color = [ 1f, 0.5, 0.5, 1 ];
-	}
+    this(Drawer d)
+    {
+        drawer = d;
+        color = [1f, 0.5, 0.5, 1];
+    }
 
-	void draw( IBullet b )
-	{
-		auto mbd = cast(MyBulletData)(b.data);
-		float[4] c;
-		if( null !is mbd ) c[] = mbd.color;
-		else c = [ 0f, 0f, 0f, 1 ];
-		
-		pd.drawer.update( b.point, b.headingVector, c );
-		pd._draw();
-	}
+    void draw(IBullet b)
+    {
+        auto mbd = cast(MyBulletData)(b.data);
+        float[4] c;
+        if (null !is mbd) c[] = mbd.color;
+        else c = [0f, 0f, 0f, 1];
+
+        drawer.drawTri(b.point, b.headingVector, c);
+    }
 }
 
 class SmokeManager
 {
-	Drawer drawer;
-	VertexArrayObject vao;
-	void delegate() _draw;
+    Drawer drawer;
+    RedSmoke bank;
 
-	alias Drawer.Vertex Vertex;
-	Vertex[] vertex = [ Vertex([ -5, 5 ]), Vertex([-5, -5]), Vertex([5, -5]), Vertex([5, 5]) ];
-	ushort[] index = [ 0, 1, 2, 3 ];
-	Bank!RedSmoke bank;
 
-	this( Drawer drawer )
-	{
-		this.drawer = drawer;
-		vao = new VertexArrayObject( drawer.prog, vertex );
-		_draw = vao.getDrawer!GL_TRIANGLE_FAN( index );
-	}
+    this(Drawer d)
+    {
+        drawer = d;
+    }
 
-	void update( float term )
-	{
-		for( auto ite = bank.iterator ; !ite.empty ; )
-		{
-			ite.update( term );
-			if( ite.life <= 0.0 ) ite.popAndRemoveFront;
-			else ite.popFront;
-		}
-	}
+    void update(float term)
+    {
+        for (auto ite = bank.iterator ; !ite.empty ;)
+        {
+            assert(ite);
+            ite.update(term);
+            if (ite.life <= 0.0) ite.removeFront.remove;
+            else ite.popFront;
+        }
+    }
 
-	void draw()
-	{
-		for( auto ite = bank.iterator ; !ite.empty ; ite.popFront ) { ite.ready( drawer ); _draw(); }
-	}
-	void clear() { bank.clear; vao.clear; }
+    void draw()
+    {
+        for (auto ite = bank.iterator ; !ite.empty ; ite.popFront)
+        {
+            float[4] color = [1f, 0, 0, 0.4 * ite.life / ite.MAX_LIFE];
+            auto h = Vector2f(0, 1).rotate(ite.life * TO_RADIAN);
+            drawer.drawCube(ite.center, h, 10, color);
+        }
+    }
+    void clear() { if (bank) bank.remove; bank = null; }
 
-	void hit( Vector2f pos ) { bank += RedSmoke( pos ); }
+    void hit(Vector2f pos) { bank.pushFront(RedSmoke(pos)); }
 }
 
 
 class RedSmoke : ISlist!RedSmoke
-{ mixin SFactory!RedSmoke;
+{ mixin SFactoryMix!RedSmoke;
 
-	enum MAX_LIFE = 120.0f;
-	Vector2f center;
-	float life;
-	Vector2f velocity;
-	float speed;
-	
-	void onReset( Vector2f pos )
-	{
-		this.center = pos;
-		life = MAX_LIFE;
-		velocity = Vector2f( 1, 0 ).rotate( uniform( -PI, PI ) );
-		speed = 0.4;
-	}
-	void onRemove() {  }
+    enum MAX_LIFE = 120.0f;
+    Vector2f center;
+    float life;
+    Vector2f velocity;
+    float speed;
 
-	void update( float term )
-	{
-		life -= term;
-		center += velocity * ( speed * term );
-	}
+    private
+    void onReset(Vector2f pos)
+    {
+        import std.random : uniform;
+        center = pos;
+        life = MAX_LIFE;
+        velocity = Vector2f(1, 0).rotate(uniform(-PI, PI));
+        speed = 0.4;
+    }
 
-	void ready( Drawer drawer )
-	{
-		float[4] color = [ 1f, 0, 0, 0.4 * life / MAX_LIFE ];
-		drawer.update( center, Vector2f( 0, 1 ).rotate( life * TO_RADIAN ), color );
-	}
+    void update(float term)
+    {
+        life -= term;
+        center += velocity * (speed * term);
+    }
 }
 
 class Setsumei
 {
-	static string vertex_shader =
-	q{ #version 420
-		in vec2 position;
-		in vec2 texcoord;
+    import sworks.gl.glsl;
 
-		out vec2 f_texcoord;
+    enum vertexShader =
+    q{ #version 130
+        in vec2 position;
+        in vec2 texcoord;
 
-		void main()
-		{
-			gl_Position = vec4( position, 0.0, 1.0 );
-			f_texcoord = texcoord;
-		}
-	};
+        out vec2 f_texcoord;
 
-	static string fragment_shader =
-	q{ #version 420
-		in vec2 f_texcoord;
-		uniform sampler2D texture1;
+        void main()
+        {
+            gl_Position = vec4(position, 0.0, 1.0);
+            f_texcoord = texcoord;
+        }
+    };
 
-		layout( location = 0 ) out vec4 colorOut;
+    enum fragmentShader =
+    q{ #version 130
+        in vec2 f_texcoord;
+        uniform sampler2D texture1;
 
-		void main()
-		{
-			colorOut = texture2D( texture1, f_texcoord );
-		}
-	};
+        out vec4 colorOut;
 
-	struct Vertex
-	{
-		float[2] position;
-		float[2] texcoord;
-		this( float[4] p ... ){ position[] = p[ 0 .. 2 ]; texcoord = p[ 2 .. 4 ]; }
-	}
-	Vertex[] vertex = [ Vertex( -0.9, 0.8,  0, 1 ), Vertex( -0.2, 0.8, 1, 1 )
-	                  , Vertex( -0.2, 1, 1, 0 ), Vertex( -0.9, 1, 0, 0 ) ];
-	ushort[] index = [ 0, 1, 2, 3 ];
+        void main()
+        {
+            colorOut = texture2D(texture1, f_texcoord);
+        }
+    };
 
-	Shader vs, fs;
-	ShaderProgram prog;
-	VertexArrayObject vao;
-	Texture2DRGBA32 tex;
-	void delegate() draw;
+    alias SProgram = CTShaderProgram!(vertexShader, fragmentShader);
 
-	this( const(char)* texfile )
-	{
-		vs = new Shader( GL_VERTEX_SHADER, vertex_shader );
-		fs = new Shader( GL_FRAGMENT_SHADER, fragment_shader );
-		prog = (new ShaderProgram( vs, fs )).link;
+    struct Vertex
+    {
+        float[2] position;
+        float[2] texcoord;
+        this(float[4] p ...){ position[] = p[0 .. 2]; texcoord = p[2 .. 4]; }
+    }
+    enum vertex = [Vertex(-0.9, 0.8,  0, 1), Vertex(-0.2, 0.8, 1, 1),
+                   Vertex(-0.2, 1, 1, 0), Vertex(-0.9, 1, 0, 0)];
+    enum uint[] index = [0, 1, 2, 3];
 
-		vao = new VertexArrayObject( prog, vertex );
+    SProgram prog;
+    VertexObject!Vertex vo;
+    IndexObject!(Vertex, uint) io;
+    Texture2DRGBA32 tex;
 
-		tex = loadTexture2DRGBA32( texfile );
 
-		draw = drawSystem( vao.getDrawer!GL_TRIANGLE_FAN( index ), prog, [ "texture1" : tex ] );
-	}
+    this(const(char)* texfile)
+    {
+        prog = new SProgram;
+        vo = prog.makeVertex(vertex);
+        tex = loadTexture2DRGBA32(texfile);
+        io = vo.makeIndex(index, prog,  ["texture1": tex.id]);
+    }
 
-	void clear()
-	{
-		tex.clear();
-		vao.clear();
-		prog.clear();
-		vs.clear();
-		fs.clear();
-	}
+    void draw()
+    {
+        prog.use;
+        vo.use;
+        io.use;
 
+        io.draw(GL_TRIANGLE_FAN);
+    }
+
+    void clear()
+    {
+        if (io) io.clear; io = null;
+        if (vo) vo.clear; vo = null;
+        if (prog) prog.clear; prog = null;
+        if (tex) tex.clear; tex = null;
+    }
 }

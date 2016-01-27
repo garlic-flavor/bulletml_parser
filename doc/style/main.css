@@ -1,335 +1,218 @@
 @charset "utf-8";
 
-/*******************************************************************************
+/*
  * 全体
  */
 body
 {
-		color: black;
-		background-color: #000000;
-		line-height: 1.3em;
-		overflow: hidden;
-		margin-left: 0px;
-		margin-right: 0px;
-}
-
-ul.spaced-list li + li
-{
-		margin-top: 1.3em;
+    background-color: lightyellow;
 }
 
 /*
- * フッタ
- */
-.footer
-{
-		color: #ffffff;
-		background-color: #000000;
-		text-align: right;
-		font-size: 0.8em;
-}
-
-.footer > a
-{
-		color: #ffffff;
-}
-
-
-/*******************************************************************************
  * 一番上のタイトル
  */
-body > h1
+#main-title
 {
-		color: #002050;
-		font-size: 2em;
-		text-align: center;
-		background-color: #baf8b5;
-		padding-top: 5px;
-		margin-top: 5px;
-		margin-bottom: 5px;
-}
-
-body > h1:before
-{
-		content: url(../image/d.png);
-}
-
-h1 small
-{
-		font-size: 0.5em;
-}
-
-/*******************************************************************************
- * 左ペイン
- */
-div.left-pain
-{
-		overflow: visible;
-		float: left;
-		margin-right: 4px;
-		padding-left: 4px;
-		background-color: #f0fff0;
-}
-
-div.left-pain > ul
-{
-		overflow: auto;
-		font-size: 0.7em;
-		line-height: 1em;
-		padding-left: 1.5em;
-		margin-top: 5px;
-}
-
-.module-item:hover
-{
-		cursor: pointer;
-		background-color: #c2ecfa;
-}
-
-/*
- * ペインのリサイズハンドル
- */
-div.ui-resizable-se
-{
-		background-color: #c2ecfa;
+    color: gray;
+    text-align: center;
+    border-bottom: 12px solid lightgray;
+    margin-bottom: 0px;
 }
 
 
 /*
- *
+ *一番下のん。
  */
-.member-list
+#main-footer
 {
-		font-size: 1em;
-		padding-left: 1.5em;
-}
-
-/*******************************************************************************
- * 主ペイン
- */
-div.main
-{
-		overflow: auto;
-		background-color: white;
-		padding-left: 10px;
-		padding-right: 10px;
+    color: darkslategray;
+    text-align: right;
+    margin-bottom: 0px;
+    background-color: lightgray;
 }
 
 
 /*
- * セクション間のすきま
+ * 左側
  */
-p + p
+#left-pain
 {
-		margin-top: 3em;
+    position: fixed;
+    left: 0px;
+    bottom: 0px;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    background-color: #d0d0a0;
+    overflow: auto;
+}
+
+/* モジュールアイテムの展開ボタン */
+.expand-button
+{
+    display: inline;
+    margin-right: 5px;
+    cursor: pointer;
+    background-color: #e0ffe0;
+    color: black;
+    font-family: monospace;
+}
+
+.expand-button:hover
+{
+    background-color: gray;
+    color: white;
 }
 
 
-/***************************************
- * セクションのタイトル
- */
-.main > *:before
-{
-		font-size: 1.1em;
-		font-weight: bold;
-		display: block;
-		color: #002050;
-		background-color: #baf8b5;
-		padding-left: 1em;
-		border-top: 5px solid #000000;
-		border-bottom: 5px solid #000000;
-		margin-bottom: 1em;
-}
+/* 左側のそれぞれのアイテム */
 
-.main > .summary-sec:before
+/* 今、画面上に見えてるやつ  */
+#left-pain > div.active
 {
-		content: "概要";
-}
-
-.how-to-use-sec:before
-{
-		content: "使い方";
-}
-
-.bug-sec:before
-{
-		font-weight: bold;
-		display: block;
-		content: "!!!BUG!!!";
-		background-color: white;
-		color: #d00050;
-		border: none;
-		padding-left: 0;
-		margin-bottom: 0;
-}
-
-.todo-sec:before
-{
-		font-weight: bold;
-		display: block;
-		content: "ToDo:";
-		background-color: white;
-		color: #d93448;
-		border: none;
-		padding-left: 0;
-		margin-bottom: 0;
-}
-
-.acknowledgements-sec:before
-{
-		margin-left: 0;
-		content: "謝辞";
-}
-
-.license-sec:before
-{
-		content: "ライセンス";
-}
-
-.environment-sec:before
-{
-		content: "開発環境";
-}
-
-.history-sec:before
-{
-		content: "更新履歴";
-}
-
-/***************************************
- * コードスニペット
- */
-pre.d_code
-{
-		border: 3px solid #000000;
-		color: #ffffff;
-		background-color: #003080;
-		padding-left: 5px;
-		padding-top: 5px;
-		padding-bottom: 5px;
-}
-
-.dkeyword
-{
-		font-weight: bold;
-		color: #23ad7b;
-}
-
-pre.d_code > q
-{
-		color: #f17161;
-		quotes: '"' '"';
+    background-color: white;
 }
 
 
-/***************************************
- * DDOC
- */
-
-.main > h1
+/* モジュールの各メンバ */
+#left-pain ul
 {
-		color: #002050;
-		font-size: 1.5em;
-		background-color: #c2ecfa;
-		margin-top: 0;
-		margin-bottom: 0;
-		padding-top: 0.5em;
-		padding-bottom: 0.5em;
-		padding-left: 0.5em;
+    margin-top: 0px;
+    padding-left: 1em;
 }
+
 
 /*
- * ヘッダ
+ * メイン
  */
+#main-pain
+{
+    overflow: auto;
+    position: absolute;
+    padding-left: 1em;
+    padding-top: 1em;
+}
+
+
+
+/*
+ * 中身
+ */
+
+dt
+{
+    font-weight: bold;
+}
+
+/* モジュール単位 */
+#modules > dt
+{
+    font-size: x-large;
+    padding-left: 8px;
+    border-left: 16px solid gray;
+    border-bottom: 8px solid gray;
+}
+
+#modules > dd + dt
+{
+    margin-top: 4em;
+}
+
+/* 各ファイルの先頭についてるやつ。 */
+#modules .summary-header-sec
+{
+    display: none;
+}
+
+#main-page > .summary-header-sec
+{
+    margin-bottom: 1em;
+}
 .summary-header-sec:before
 {
-		font-size: 1em;
-		background-color: #e0e0e0;
-		border-top: none;
-		border-bottom: none;
-		border-left: 5px solid #000000;
-		padding-left: 2px;
-		padding-right: 4px;
-		margin-right: 1em;
-		margin-bottom: 1px;
-		display: inline;
-}
-
-.summary-header-sec
-{
-		visibility: collapse; /**********/
+    font-weight: bold;
 }
 
 .version-sec:before
 {
-		content: "バージョン : ";
+    content: "バージョン： ";
 }
 
 .date-sec:before
 {
-		content: "更新日時 : ";
+    content: "更新日時： ";
 }
 
 .authors-sec:before
 {
-		content: "作者 : ";
+    content: "作者： ";
 }
 
 .license-sec:before
 {
-		content: "ライセンス : ";
+    content: "ライセンス： ";
 }
 
-/*
- *
- */
-.module-members-sec:before
+/* 本文中 */
+.acknowledgements-sec:before
 {
-		content: "";
+    content: "◆ 謝辞 ◆";
+    font-weight: bold;
 }
 
-.module-members-sec:after
+.development-environment:before
 {
-		content: "";
-		border-top: 5px solid #000000;
-		border-bottom: 5px solid #000000;
-		display: block;
+    content: "◆ 開発環境 ◆";
+    font-weight: bold;
+}
+
+dl.module-members-sec > dt
+{
+    border-left: 5px solid #305030;
+    padding-left: 5px;
+}
+
+.summary-sec:before
+{
+    content: "・ ";
+    color: gray;
+    font-weight: bold;
 }
 
 .decl
 {
-		color: #707070;
-		font-weight: bold;
+    color: #707070;
+    font-weight: bold;
+    font-family: monospace;
 }
 
 .psymbol
 {
-		color: #002050;
-		font-weight: bold;
-}
-
-dd
-{
-		margin-bottom: 3em;
-}
-
-
-.members-sec
-{
-		border-top: none;
-		border-bottom: 3px solid #002050;
-		border-left: 1px dotted #002050;
-		border-right: none;
+    color: #002050;
+    font-weight: bold;
 }
 
 .param
 {
-		color: #df4840;
+    color: #904840;
+    font-weight: bold;
 }
 
 .params_id
 {
-		color: #707070;
-		font-weight: bold;
+    color: #904840;
+    font-weight: bold;
 }
 
+.dkeyword
+{
+    color: darkblue;
+    font-weight: bold;
+}
+
+.bug-sec:before
+{
+    content: "BUGS:";
+    font-weight: bold;
+    color: red;
+    font-size: 1.2em;
+}

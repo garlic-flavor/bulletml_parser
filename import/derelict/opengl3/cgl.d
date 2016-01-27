@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
+this license ( the "Software" ) to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -27,20 +27,10 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.opengl3.cgl;
 
-// Original version: 2008-04-03 by Hugues De Keyzer
-
-// Original C headers:
-//     OpenGL.h
-//     CGLTypes.h
-//     CGLCurrent.h
-// from /System/Library/Frameworks/OpenGL.framework/Headers from Mac OS X 10.4
-
 private import derelict.util.system;
 
-static if(Derelict_OS_Mac)
-{
-    private
-    {
+static if( Derelict_OS_Mac ) {
+    private {
         import derelict.util.loader;
         import derelict.opengl3.types;
     }
@@ -55,8 +45,7 @@ static if(Derelict_OS_Mac)
     alias _CGLRendererInfoObject*         CGLRendererInfoObj;
     alias _CGLPBufferObject*              CGLPBufferObj;
 
-    enum CGLPixelFormatAttribute
-    {
+    enum CGLPixelFormatAttribute {
         kCGLPFAAllRenderers       =   1,    /* choose from all available renderers          */
         kCGLPFADoubleBuffer       =   5,    /* choose a double buffered pixel format        */
         kCGLPFAStereo             =   6,    /* stereo buffering supported                   */
@@ -95,8 +84,7 @@ static if(Derelict_OS_Mac)
         kCGLPFAVirtualScreenCount = 128     /* number of virtual screens in this format     */
     }
 
-    enum CGLRendererProperty
-    {
+    enum CGLRendererProperty {
         kCGLRPOffScreen           =  53,
         kCGLRPFullScreen          =  54,
         kCGLRPRendererID          =  70,
@@ -125,8 +113,7 @@ static if(Derelict_OS_Mac)
         kCGLRPRendererCount       = 128     /* the number of renderers in this renderer info */
     }
 
-    enum CGLContextEnable
-    {
+    enum CGLContextEnable {
         kCGLCESwapRectangle    = 201,   /* Enable or disable the swap rectangle          */
         kCGLCESwapLimit        = 203,   /* Enable or disable the swap async limit        */
         kCGLCERasterization    = 221,   /* Enable or disable all rasterization           */
@@ -136,8 +123,7 @@ static if(Derelict_OS_Mac)
         kCGLCEMPEngine = 313            /* Enable or disable multi-threaded GL engine    */
     }
 
-    enum CGLContextParameter
-    {
+    enum CGLContextParameter {
         kCGLCPSwapRectangle     = 200,  /* 4 params.  Set or get the swap rectangle {x, y, w, h}  */
         kCGLCPSwapInterval      = 222,  /* 1 param.   0 -> Don't sync, n -> Sync every n retrace  */
         kCGLCPDispatchTableSize = 224,  /* 1 param.   Get the dispatch table size                 */
@@ -151,7 +137,7 @@ static if(Derelict_OS_Mac)
     /*  AGL_CONTEXT_SURFACE_ID   233    */
     /*  AGL_CONTEXT_DISPLAY_ID   234    */
         kCGLCPSurfaceOrder      = 235,  /* 1 param.   1 -> Above window, -1 -> Below Window       */
-        kCGLCPSurfaceOpacity    = 236,  /* 1 param.   1 -> Surface is opaque (default), 0 -> non-opaque */
+        kCGLCPSurfaceOpacity    = 236,  /* 1 param.   1 -> Surface is opaque ( default ), 0 -> non-opaque */
     /*  - Used by AGL - */
     /*  AGL_CLIP_REGION          254   */
     /*  AGL_FS_CAPTURE_SINGLE    255   */
@@ -160,12 +146,11 @@ static if(Derelict_OS_Mac)
         kCGLCPSurfaceSurfaceVolatile = 306, /* 1 param.   Surface volatile state                    */
         kCGLCPReclaimResources       = 308, /* 0 params.  */
         kCGLCPCurrentRendererID      = 309, /* 1 param.   Retrieves the current renderer ID         */
-        kCGLCPGPUVertexProcessing    = 310, /* 1 param.   Currently processing vertices with GPU (get) */
-        kCGLCPGPUFragmentProcessing  = 311, /* 1 param.   Currently processing fragments with GPU (get) */
+        kCGLCPGPUVertexProcessing    = 310, /* 1 param.   Currently processing vertices with GPU ( get ) */
+        kCGLCPGPUFragmentProcessing  = 311, /* 1 param.   Currently processing fragments with GPU ( get ) */
     }
 
-    enum CGLGlobalOption
-    {
+    enum CGLGlobalOption {
         kCGLGOFormatCacheSize  = 501,   /* Set the size of the pixel format cache        */
         kCGLGOClearFormatCache = 502,   /* Reset the pixel format cache if true          */
         kCGLGORetainRenderers  = 503,   /* Whether to retain loaded renderers in memory  */
@@ -174,8 +159,7 @@ static if(Derelict_OS_Mac)
         kCGLGOUseErrorHandler  = 505,   /* Call the Core Graphics handler on CGL errors  */
     }
 
-    enum CGLError
-    {
+    enum CGLError {
         kCGLNoError            = 0,     /* no error */
         kCGLBadAttribute       = 10000, /* invalid pixel format attribute  */
         kCGLBadProperty        = 10001, /* invalid renderer property       */
@@ -197,120 +181,112 @@ static if(Derelict_OS_Mac)
         kCGLBadConnection      = 10017  /* invalid CoreGraphics connection */
     }
 
-    extern (C)
-    {
-        __gshared nothrow
+    extern ( C ) {
+        @nogc __gshared nothrow
         {
-            CGLError function(CGLPixelFormatAttribute*, CGLPixelFormatObj*, int*) CGLChoosePixelFormat;
-            CGLError function(CGLPixelFormatObj) CGLDestroyPixelFormat;
-            CGLError function(CGLPixelFormatObj, int, CGLPixelFormatAttribute, int*) CGLDescribePixelFormat;
+            CGLError function( CGLPixelFormatAttribute*, CGLPixelFormatObj*, int* ) CGLChoosePixelFormat;
+            CGLError function( CGLPixelFormatObj ) CGLDestroyPixelFormat;
+            CGLError function( CGLPixelFormatObj, int, CGLPixelFormatAttribute, int* ) CGLDescribePixelFormat;
 
-            CGLError function(uint, CGLRendererInfoObj*, int*) CGLQueryRendererInfo;
-            CGLError function(CGLRendererInfoObj) CGLDestroyRendererInfo;
-            CGLError function(CGLRendererInfoObj, int, CGLRendererProperty, int*) CGLDescribeRenderer;
+            CGLError function( uint, CGLRendererInfoObj*, int* ) CGLQueryRendererInfo;
+            CGLError function( CGLRendererInfoObj ) CGLDestroyRendererInfo;
+            CGLError function( CGLRendererInfoObj, int, CGLRendererProperty, int* ) CGLDescribeRenderer;
 
-            CGLError function(CGLPixelFormatObj, CGLContextObj, CGLContextObj*) CGLCreateContext;
-            CGLError function(CGLContextObj) CGLDestroyContext;
-            CGLError function(CGLContextObj, CGLContextObj, uint) CGLCopyContext;
+            CGLError function( CGLPixelFormatObj, CGLContextObj, CGLContextObj* ) CGLCreateContext;
+            CGLError function( CGLContextObj ) CGLDestroyContext;
+            CGLError function( CGLContextObj, CGLContextObj, uint ) CGLCopyContext;
 
-            CGLError function(CGLContextObj, int, int, int, void*) CGLSetOffScreen;
-            CGLError function(CGLContextObj, int*, int*, int*, void **baseaddr) CGLGetOffScreen;
-            CGLError function(CGLContextObj) CGLSetFullScreen;
+            CGLError function( CGLContextObj, int, int, int, void* ) CGLSetOffScreen;
+            CGLError function( CGLContextObj, int*, int*, int*, void **baseaddr ) CGLGetOffScreen;
+            CGLError function( CGLContextObj ) CGLSetFullScreen;
 
-            CGLError function(CGLContextObj) CGLClearDrawable;
-            CGLError function(CGLContextObj) CGLFlushDrawable;
+            CGLError function( CGLContextObj ) CGLClearDrawable;
+            CGLError function( CGLContextObj ) CGLFlushDrawable;
 
-            CGLError function(CGLContextObj, CGLContextEnable) CGLEnable;
-            CGLError function(CGLContextObj, CGLContextEnable) CGLDisable;
-            CGLError function(CGLContextObj, CGLContextEnable, int*) CGLIsEnabled;
-            CGLError function(CGLContextObj, CGLContextParameter, int*) CGLSetParameter;
-            CGLError function(CGLContextObj, CGLContextParameter, int*) CGLGetParameter;
+            CGLError function( CGLContextObj, CGLContextEnable ) CGLEnable;
+            CGLError function( CGLContextObj, CGLContextEnable ) CGLDisable;
+            CGLError function( CGLContextObj, CGLContextEnable, int* ) CGLIsEnabled;
+            CGLError function( CGLContextObj, CGLContextParameter, int* ) CGLSetParameter;
+            CGLError function( CGLContextObj, CGLContextParameter, int* ) CGLGetParameter;
 
-            CGLError function(CGLContextObj, int) CGLSetVirtualScreen;
-            CGLError function(CGLContextObj, int*) CGLGetVirtualScreen;
+            CGLError function( CGLContextObj, int ) CGLSetVirtualScreen;
+            CGLError function( CGLContextObj, int* ) CGLGetVirtualScreen;
 
-            CGLError function(CGLGlobalOption, int) CGLSetOption;
-            CGLError function(CGLGlobalOption, int*) CGLGetOption;
+            CGLError function( CGLGlobalOption, int ) CGLSetOption;
+            CGLError function( CGLGlobalOption, int* ) CGLGetOption;
 
 
-            version (Mac_OS_X_10_4_and_later)
-            {
-                CGLError function(CGLContextObj) CGLLockContext;
-                CGLError function(CGLContextObj) CGLUnlockContext;
+            version ( Mac_OS_X_10_4_and_later ) {
+                CGLError function( CGLContextObj ) CGLLockContext;
+                CGLError function( CGLContextObj ) CGLUnlockContext;
             }
 
-            void function(int*, int*) CGLGetVersion;
+            void function( int*, int* ) CGLGetVersion;
 
-            char* function(CGLError) CGLErrorString;
+            char* function( CGLError ) CGLErrorString;
 
-            CGLError function(CGLContextObj) CGLSetCurrentContext;
+            CGLError function( CGLContextObj ) CGLSetCurrentContext;
             CGLContextObj function() CGLGetCurrentContext;
         }
     }
 
-    package
-    {
-        alias void delegate(void**, string, bool doThrow) da_bindFunc;
+    package {
+        alias void delegate( void**, string, bool doThrow ) da_bindFunc;
         __gshared da_bindFunc _bindFunc;
 
-        void loadPlatformGL(da_bindFunc bindFunc)
-        {
-            bindFunc(cast(void**)&CGLSetCurrentContext, "CGLSetCurrentContext", true);
-            bindFunc(cast(void**)&CGLGetCurrentContext, "CGLGetCurrentContext", true);
-            bindFunc(cast(void**)&CGLChoosePixelFormat, "CGLChoosePixelFormat", true);
-            bindFunc(cast(void**)&CGLDestroyPixelFormat, "CGLDestroyPixelFormat", true);
-            bindFunc(cast(void**)&CGLDescribePixelFormat, "CGLDescribePixelFormat", true);
-            bindFunc(cast(void**)&CGLQueryRendererInfo, "CGLQueryRendererInfo", true);
-            bindFunc(cast(void**)&CGLDestroyRendererInfo, "CGLDestroyRendererInfo", true);
-            bindFunc(cast(void**)&CGLDescribeRenderer, "CGLDescribeRenderer", true);
-            bindFunc(cast(void**)&CGLCreateContext, "CGLCreateContext", true);
-            bindFunc(cast(void**)&CGLDestroyContext, "CGLDestroyContext", true);
-            bindFunc(cast(void**)&CGLCopyContext, "CGLCopyContext", true);
-            bindFunc(cast(void**)&CGLSetOffScreen, "CGLSetOffScreen", true);
-            bindFunc(cast(void**)&CGLGetOffScreen, "CGLGetOffScreen", true);
-            bindFunc(cast(void**)&CGLSetFullScreen, "CGLSetFullScreen", true);
-            bindFunc(cast(void**)&CGLClearDrawable, "CGLClearDrawable", true);
-            bindFunc(cast(void**)&CGLFlushDrawable, "CGLFlushDrawable", true);
-            bindFunc(cast(void**)&CGLEnable, "CGLEnable", true);
-            bindFunc(cast(void**)&CGLDisable, "CGLDisable", true);
-            bindFunc(cast(void**)&CGLIsEnabled, "CGLIsEnabled", true);
-            bindFunc(cast(void**)&CGLSetParameter, "CGLSetParameter", true);
-            bindFunc(cast(void**)&CGLGetParameter, "CGLGetParameter", true);
-            bindFunc(cast(void**)&CGLSetVirtualScreen, "CGLSetVirtualScreen", true);
-            bindFunc(cast(void**)&CGLGetVirtualScreen, "CGLGetVirtualScreen", true);
-            bindFunc(cast(void**)&CGLSetOption, "CGLSetOption", true);
-            bindFunc(cast(void**)&CGLGetOption, "CGLGetOption", true);
+        void loadPlatformGL( da_bindFunc bindFunc ) {
+            bindFunc( cast( void** )&CGLSetCurrentContext, "CGLSetCurrentContext", true );
+            bindFunc( cast( void** )&CGLGetCurrentContext, "CGLGetCurrentContext", true );
+            bindFunc( cast( void** )&CGLChoosePixelFormat, "CGLChoosePixelFormat", true );
+            bindFunc( cast( void** )&CGLDestroyPixelFormat, "CGLDestroyPixelFormat", true );
+            bindFunc( cast( void** )&CGLDescribePixelFormat, "CGLDescribePixelFormat", true );
+            bindFunc( cast( void** )&CGLQueryRendererInfo, "CGLQueryRendererInfo", true );
+            bindFunc( cast( void** )&CGLDestroyRendererInfo, "CGLDestroyRendererInfo", true );
+            bindFunc( cast( void** )&CGLDescribeRenderer, "CGLDescribeRenderer", true );
+            bindFunc( cast( void** )&CGLCreateContext, "CGLCreateContext", true );
+            bindFunc( cast( void** )&CGLDestroyContext, "CGLDestroyContext", true );
+            bindFunc( cast( void** )&CGLCopyContext, "CGLCopyContext", true );
+            bindFunc( cast( void** )&CGLSetOffScreen, "CGLSetOffScreen", true );
+            bindFunc( cast( void** )&CGLGetOffScreen, "CGLGetOffScreen", true );
+            bindFunc( cast( void** )&CGLSetFullScreen, "CGLSetFullScreen", true );
+            bindFunc( cast( void** )&CGLClearDrawable, "CGLClearDrawable", true );
+            bindFunc( cast( void** )&CGLFlushDrawable, "CGLFlushDrawable", true );
+            bindFunc( cast( void** )&CGLEnable, "CGLEnable", true );
+            bindFunc( cast( void** )&CGLDisable, "CGLDisable", true );
+            bindFunc( cast( void** )&CGLIsEnabled, "CGLIsEnabled", true );
+            bindFunc( cast( void** )&CGLSetParameter, "CGLSetParameter", true );
+            bindFunc( cast( void** )&CGLGetParameter, "CGLGetParameter", true );
+            bindFunc( cast( void** )&CGLSetVirtualScreen, "CGLSetVirtualScreen", true );
+            bindFunc( cast( void** )&CGLGetVirtualScreen, "CGLGetVirtualScreen", true );
+            bindFunc( cast( void** )&CGLSetOption, "CGLSetOption", true );
+            bindFunc( cast( void** )&CGLGetOption, "CGLGetOption", true );
 
-            version (Mac_OS_X_10_4_and_later)
-            {
-                bindFunc(cast(void**)&CGLLockContext, "CGLLockContext", true);
+            version ( Mac_OS_X_10_4_and_later ) {
+                bindFunc( cast( void** )&CGLLockContext, "CGLLockContext", true );
 
-                bindFunc(cast(void**)&CGLUnlockContext, "CGLUnlockContext", true);
+                bindFunc( cast( void** )&CGLUnlockContext, "CGLUnlockContext", true );
             }
 
-            bindFunc(cast(void**)&CGLGetVersion, "CGLGetVersion", true);
-            bindFunc(cast(void**)&CGLErrorString, "CGLErrorString", true);
+            bindFunc( cast( void** )&CGLGetVersion, "CGLGetVersion", true );
+            bindFunc( cast( void** )&CGLErrorString, "CGLErrorString", true );
 
-            bindFunc(cast(void**)&CGLSetCurrentContext, "CGLSetCurrentContext", true);
-            bindFunc(cast(void**)&CGLGetCurrentContext, "CGLGetCurrentContext", true);
+            bindFunc( cast( void** )&CGLSetCurrentContext, "CGLSetCurrentContext", true );
+            bindFunc( cast( void** )&CGLGetCurrentContext, "CGLGetCurrentContext", true );
 
             _bindFunc = bindFunc;
         }
 
-        void* loadGLFunc(string symName)
-        {
-            if(_bindFunc)
-            {
+        void* loadGLFunc( string symName ) {
+            if( _bindFunc ) {
                 void *ptr;
-                _bindFunc(&ptr, symName, false);
+                _bindFunc( &ptr, symName, false );
                 return ptr;
             }
             return null;
         }
 
-        bool hasValidContext()
-        {
-            if(CGLGetCurrentContext && CGLGetCurrentContext())
+        bool hasValidContext() {
+            if( CGLGetCurrentContext && CGLGetCurrentContext())
                 return true;
             return false;
         }

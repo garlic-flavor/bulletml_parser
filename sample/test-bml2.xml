@@ -3,17 +3,17 @@
 
 <bulletml xmlns="http://www.asahi-net.or.jp/~cs8k-cyu/bulletml">
 
-	<action label="top">
-		<repeat>
-			<times>100</times>
-			<action>
-				<fire>
-					<direction type="sequence">23</direction>
-					<bullet/>
-				</fire>
-				<wait>1</wait>
-			</action>
-		</repeat>
-	</action>
+  <action label="top">
+    <repeat>
+      <times>100</times>
+      <action>
+        <fire>
+          <direction type="sequence">23</direction>
+          <bullet/>
+        </fire>
+        <wait>1</wait>
+      </action>
+    </repeat>
+  </action>
 
 </bulletml>

@@ -1,61 +1,72 @@
+## for gnu make
+## DOT DIRECTIVE
+.PHONY : release clean show remake install run edit clean_obj vwrite debug-all ddoc
 ## MACRO
-TARGET = bulletml.exe
-MAKE = make
+TARGET = ctbml
+AUTHORS =
+LICENSE =
+VERSION =
+
 MAKEFILE = Makefile
-TO_COMPILE = src\sworks\bulletml\ctbml.d src\sworks\compo\util\matrix.d src\sworks\compo\sdl\port.d src\sworks\compo\gl\port.d src\sworks\compo\sdl\gl.d src\sworks\compo\gl\texture_2drgba32.d src\sworks\compo\util\dump_members.d src\sworks\compo\sdl\util.d src\sworks\compo\gl\util.d src\sworks\compo\gl\glsl.d src\sworks\compo\util\factory.d src\sworks\compo\sdl\image.d
-TO_LINK = src\sworks\bulletml\ctbml.obj src\sworks\compo\util\matrix.obj src\sworks\compo\sdl\port.obj src\sworks\compo\gl\port.obj src\sworks\compo\sdl\gl.obj src\sworks\compo\gl\texture_2drgba32.obj src\sworks\compo\util\dump_members.obj src\sworks\compo\sdl\util.obj src\sworks\compo\gl\util.obj src\sworks\compo\gl\glsl.obj src\sworks\compo\util\factory.obj src\sworks\compo\sdl\image.obj
-COMPILE_FLAG = -debug=bulletml -Jsample -version=Unicode -version=WindowsVista -Isrc;import
-LINK_FLAG =
-EXT_LIB = lib\DerelictGL3.lib lib\DerelictSDL2.lib lib\DerelictUtil.lib
-DDOC_FILE = doc\main.ddoc
+DC = dmd
+MAKE = gmake
+TO_COMPILE = src/sworks/base/aio.d src/sworks/gl/port.d src/sworks/base/dump_members.d src/sworks/bulletml/ctbml.d src/sworks/base/ctfe.d src/sworks/gl/texture_2drgba32.d src/sworks/sdl/util.d src/sworks/base/factory.d src/sworks/base/matrix.d src/sworks/gl/bo.d src/sworks/gl/glsl.d src/sworks/gl/util.d src/sworks/sdl/gl.d src/sworks/xml.d src/sworks/util/cached_buffer.d src/sworks/sdl/image.d src/sworks/sdl/port.d
+TO_LINK = src/sworks/base/aio.o src/sworks/gl/port.o src/sworks/base/dump_members.o src/sworks/bulletml/ctbml.o src/sworks/base/ctfe.o src/sworks/gl/texture_2drgba32.o src/sworks/sdl/util.o src/sworks/base/factory.o src/sworks/base/matrix.o src/sworks/gl/bo.o src/sworks/gl/glsl.o src/sworks/gl/util.o src/sworks/sdl/gl.o src/sworks/xml.o src/sworks/util/cached_buffer.o src/sworks/sdl/image.o src/sworks/sdl/port.o
+COMPILE_FLAG = -Jsample -debug=bulletml -Isrc:/usr/local/include
+LINK_FLAG = -L-lDerelictUtil -L-lDerelictSDL2 -L-lDerelictGL3
+EXT_LIB =
+DDOC_FILE =
 FLAG =
 
 ## LINK COMMAND
 $(TARGET) : $(TO_LINK) $(EXT_LIB)
-	dmd -g $(LINK_FLAG) $(FLAG) -of$@ $**
+	$(DC) -g -of$@ $(LINK_FLAG) $(TO_LINK) $(EXT_LIB) $(FLAG)
 
 ## COMPILE RULE
-.d.obj :
-	dmd -c -g -op -debug $(COMPILE_FLAG) $(FLAG) $<
+%.o : %.d
+	$(DC) -c -g -op -debug $(COMPILE_FLAG) $(FLAG) $<
 
 ## DEPENDENCE
 $(TO_LINK) : $(MAKEFILE) $(EXT_LIB)
-src\sworks\bulletml\ctbml.obj : src\sworks\bulletml\ctbml.d src\sworks\compo\util\matrix.d src\sworks\compo\sdl\port.d src\sworks\compo\sdl\gl.d src\sworks\compo\gl\port.d src\sworks\compo\gl\texture_2drgba32.d src\sworks\compo\util\dump_members.d src\sworks\compo\sdl\util.d src\sworks\compo\gl\util.d src\sworks\compo\gl\glsl.d src\sworks\compo\util\factory.d src\sworks\compo\sdl\image.d
-src\sworks\compo\util\matrix.obj : src\sworks\compo\util\matrix.d
-src\sworks\compo\sdl\port.obj : src\sworks\compo\sdl\port.d
-src\sworks\compo\gl\port.obj : src\sworks\compo\gl\port.d
-src\sworks\compo\sdl\gl.obj : src\sworks\compo\sdl\gl.d src\sworks\compo\gl\port.d src\sworks\compo\gl\texture_2drgba32.d src\sworks\compo\sdl\port.d src\sworks\compo\gl\util.d src\sworks\compo\gl\glsl.d src\sworks\compo\sdl\util.d src\sworks\compo\sdl\image.d
-src\sworks\compo\gl\texture_2drgba32.obj : src\sworks\compo\gl\texture_2drgba32.d src\sworks\compo\gl\port.d
-src\sworks\compo\util\dump_members.obj : src\sworks\compo\util\dump_members.d
-src\sworks\compo\sdl\util.obj : src\sworks\compo\sdl\port.d src\sworks\compo\sdl\util.d
-src\sworks\compo\gl\util.obj : src\sworks\compo\gl\port.d src\sworks\compo\gl\util.d
-src\sworks\compo\gl\glsl.obj : src\sworks\compo\gl\port.d src\sworks\compo\gl\glsl.d src\sworks\compo\gl\util.d
-src\sworks\compo\util\factory.obj : src\sworks\compo\util\factory.d
-src\sworks\compo\sdl\image.obj : src\sworks\compo\sdl\port.d src\sworks\compo\sdl\util.d src\sworks\compo\sdl\image.d
+src/sworks/base/aio.o : src/sworks/base/aio.d
+src/sworks/gl/port.o : src/sworks/gl/port.d
+src/sworks/base/dump_members.o : src/sworks/base/dump_members.d
+src/sworks/bulletml/ctbml.o : src/sworks/base/aio.d src/sworks/gl/port.d src/sworks/base/dump_members.d src/sworks/bulletml/ctbml.d src/sworks/base/ctfe.d src/sworks/gl/texture_2drgba32.d src/sworks/sdl/util.d src/sworks/base/factory.d src/sworks/base/matrix.d src/sworks/gl/bo.d src/sworks/gl/glsl.d src/sworks/sdl/gl.d src/sworks/gl/util.d src/sworks/xml.d src/sworks/util/cached_buffer.d src/sworks/sdl/image.d src/sworks/sdl/port.d
+src/sworks/base/ctfe.o : src/sworks/base/ctfe.d
+src/sworks/gl/texture_2drgba32.o : src/sworks/gl/port.d src/sworks/gl/texture_2drgba32.d
+src/sworks/sdl/util.o : src/sworks/util/cached_buffer.d src/sworks/sdl/util.d src/sworks/base/aio.d src/sworks/sdl/port.d
+src/sworks/base/factory.o : src/sworks/base/factory.d
+src/sworks/base/matrix.o : src/sworks/base/matrix.d
+src/sworks/gl/bo.o : src/sworks/gl/bo.d src/sworks/gl/port.d
+src/sworks/gl/glsl.o : src/sworks/util/cached_buffer.d src/sworks/gl/glsl.d src/sworks/gl/bo.d src/sworks/base/aio.d src/sworks/gl/port.d
+src/sworks/gl/util.o : src/sworks/gl/port.d src/sworks/base/aio.d src/sworks/gl/glsl.d src/sworks/base/matrix.d src/sworks/gl/bo.d src/sworks/gl/util.d src/sworks/util/cached_buffer.d
+src/sworks/sdl/gl.o : src/sworks/gl/port.d src/sworks/base/aio.d src/sworks/gl/glsl.d src/sworks/gl/texture_2drgba32.d src/sworks/sdl/util.d src/sworks/base/matrix.d src/sworks/gl/bo.d src/sworks/sdl/gl.d src/sworks/gl/util.d src/sworks/util/cached_buffer.d src/sworks/sdl/image.d src/sworks/sdl/port.d
+src/sworks/xml.o : src/sworks/xml.d src/sworks/util/cached_buffer.d src/sworks/base/aio.d src/sworks/base/ctfe.d
+src/sworks/util/cached_buffer.o : src/sworks/util/cached_buffer.d src/sworks/base/aio.d
+src/sworks/sdl/image.o : src/sworks/sdl/image.d src/sworks/sdl/util.d src/sworks/util/cached_buffer.d src/sworks/sdl/port.d src/sworks/base/aio.d
+src/sworks/sdl/port.o : src/sworks/sdl/port.d
 
 ## PHONY TARGET
 debug-all :
-	dmd -g -debug -of$(TARGET) $(COMPILE_FLAG) $(LINK_FLAG) $(TO_COMPILE) $(EXT_LIB)  $(FLAG)
+	$(DC) -g -debug -of$(TARGET) $(COMPILE_FLAG) $(LINK_FLAG) $(TO_COMPILE) $(EXT_LIB)  $(FLAG)
 release :
-	dmd -release -O -inline -L/exet:nt/su:windows:6.0 -of$(TARGET) $(COMPILE_FLAG) $(LINK_FLAG) $(TO_COMPILE) $(EXT_LIB)  $(FLAG)
+	$(DC) -release -O -inline -of$(TARGET) $(COMPILE_FLAG) $(LINK_FLAG) $(TO_COMPILE) $(EXT_LIB)  $(FLAG)
 clean :
-	del $(TARGET) $(TO_LINK)
+	rm $(TARGET) $(TO_LINK)
 clean_obj :
-	del $(TO_LINK)
+	rm $(TO_LINK)
 vwrite :
-	vwrite -ver="0.0002(dmd2.060)" -prj=$(TARGET) $(TO_COMPILE)
+	vwrite --setversion "$(VERSION)" --project "$(TARGET)" --authors "$(AUTHORS)" --license "$(LICENSE)" $(TO_COMPILE)
 ddoc :
-	dmd -c -o- -op -D -Dddoc $(COMPILE_FLAG) $(DDOC_FILE) $(TO_COMPILE) $(FLAG)
+	$(DC) -c -o- -op -D -Dddoc $(COMPILE_FLAG) $(DDOC_FILE) $(TO_COMPILE) $(FLAG)
 show :
-	@echo ROOT = src\sworks\bulletml\ctbml.d
+	@echo ROOT = src/sworks/bulletml/ctbml.d
 	@echo TARGET = $(TARGET)
-	@echo VERSION = 0.0002(dmd2.060)
-run :
-	$(TARGET) $(FLAG)
+	@echo VERSION =
 edit :
-	emacs $(TO_COMPILE)  Makefile
+	emacs $(TO_COMPILE)
 remake :
-	amm gui -debug=bulletml -Jsample vwrite=0.0002(dmd2.060) .\src\sworks\bulletml\ctbml.d .\doc\main.ddoc $(FLAG)
+	amm imp=/usr/local/include -Jsample -debug=bulletml src/sworks/bulletml/ctbml.d -L-lDerelictUtil -L-lDerelictSDL2 -L-lDerelictGL3 $(FLAG)
 
 debug :
 	ddbg $(TARGET)

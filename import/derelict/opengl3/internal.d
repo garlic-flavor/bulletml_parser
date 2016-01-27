@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
+this license (the "Software" ) to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -27,62 +27,88 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.opengl3.internal;
 
-private
-{
-    import core.stdc.string;
-    import std.string;
-    import std.conv;
+private {
+    import std.array;
 
-    import derelict.util.exception;
     import derelict.util.system;
     import derelict.opengl3.types;
     import derelict.opengl3.constants;
     import derelict.opengl3.functions;
-    static if(Derelict_OS_Windows) import derelict.opengl3.wgl;
-    else static if(Derelict_OS_Mac) import derelict.opengl3.cgl;
-    else static if(Derelict_OS_Posix) import derelict.opengl3.glx;
+    static if( Derelict_OS_Windows ) import derelict.opengl3.wgl;
+    else static if( Derelict_OS_Mac ) import derelict.opengl3.cgl;
+    else static if( Derelict_OS_Posix ) import derelict.opengl3.glx;
 }
 
-package
-{
-        void bindGLFunc(void** ptr, string symName)
-        {
-            auto sym = loadGLFunc(symName);
-            if(!sym)
-                throw new SymbolLoadException("Failed to load OpenGL symbol [" ~ symName ~ "]");
+private {
+    Appender!( const( char )*[] ) _extCache;
+}
+
+package {
+        void bindGLFunc( void** ptr, string symName ) {
+            import derelict.util.exception : SymbolLoadException;
+
+            auto sym = loadGLFunc( symName );
+            if( !sym )
+                throw new SymbolLoadException( "Failed to load OpenGL symbol [" ~ symName ~ "]" );
             *ptr = sym;
         }
 
-        bool isExtSupported(GLVersion glversion, string name)
-        {
-            // If OpenGL 3+ is loaded, use glGetStringi.
-            if(glversion >= GLVersion.GL30)
-            {
-                auto cstr = name.toStringz();
+        /*
+        This is called from DerelictGL3.reload to reset the extension name cache,
+        since supported extensions can potentially vary from context to context.
+        */
+        void initExtensionCache( GLVersion glversion ) {
+            // There's no need to cache extension names using the pre-3.0 glString
+            // technique, but the modern style of using glStringi results in a high
+            // number of calls when testing for every extension Derelict supports.
+            // This causes extreme slowdowns when using GLSL-Debugger. The cache
+            // solves that problem. Can't hurt load time, either.
+            if( glversion >= GLVersion.GL30 ) {
                 int count;
-                glGetIntegerv(GL_NUM_EXTENSIONS, &count);
-                for(int i=0; i<count; ++i)
-                {
-                    if(strcmp(glGetStringi(GL_EXTENSIONS, i), cstr) == 0)
+                glGetIntegerv( GL_NUM_EXTENSIONS, &count );
+
+                _extCache.shrinkTo( 0 );
+                _extCache.reserve( count );
+
+                for( int i=0; i<count; ++i ) {
+                    _extCache.put( glGetStringi( GL_EXTENSIONS, i ));
+                }
+            }
+        }
+
+        // Assumes that name is null-terminated, i.e. a string literal
+        bool isExtSupported( GLVersion glversion, string name ) {
+            import core.stdc.string : strcmp;
+
+            // If OpenGL 3+ is loaded, use the cache.
+            if( glversion >= GLVersion.GL30 ) {
+                foreach( extname; _extCache.data ) {
+                    if( strcmp( extname, name.ptr ) == 0 )
                         return true;
                 }
+                return false;
             }
             // Otherwise use the classic approach.
-            else
-            {
-                auto extstr = to!string(glGetString(GL_EXTENSIONS));
-                auto index = extstr.indexOf(name);
-                if(index != -1)
-                {
-                    // It's possible that the extension name is actually a
-                    // substring of another extension. If not, then the
-                    // character following the name in the extenions string
-                    // should be a space (or possibly the null character).
-                    size_t idx = index + name.length;
-                    if(extstr[idx] == ' ' || extstr[idx] == '\0')
-                        return true;
-                }
+            else {
+                return findEXT( glGetString( GL_EXTENSIONS ), name );
             }
+        }
+
+        // Assumes that extname is null-terminated, i.e. a string literal
+        bool findEXT( const( char )* extstr, string extname ) {
+            import core.stdc.string : strstr;
+
+            auto res = strstr( extstr, extname.ptr );
+            while( res ) {
+                // It's possible that the extension name is actually a
+                // substring of another extension. If not, then the
+                // character following the name in the extension string
+                // should be a space (or possibly the null character ).
+                if( res[ extname.length ] == ' ' || res[ extname.length ] == '\0' )
+                    return true;
+                res = strstr( res + extname.length, extname.ptr );
+            }
+
             return false;
         }
 }

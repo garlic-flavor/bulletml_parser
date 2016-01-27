@@ -27,47 +27,48 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.opengl3.types;
 
-alias uint GLenum;
-alias void GLvoid;
-alias ubyte GLboolean;
-alias uint GLbitfield;
-alias char GLchar;
-alias byte GLbyte;
-alias short GLshort;
-alias int GLint;
-alias int GLsizei;
-alias ubyte GLubyte;
-alias ushort GLushort;
-alias uint GLuint;
-alias ushort GLhalf;
-alias float GLfloat;
-alias float GLclampf;
-alias double GLdouble;
-alias double GLclampd;
-alias ptrdiff_t GLintptr;
-alias ptrdiff_t GLsizeiptr;
+alias GLenum = uint;
+alias GLvoid = void;
+alias GLboolean = ubyte;
+alias GLbitfield = uint;
+alias GLchar = char;
+alias GLbyte = byte;
+alias GLshort = short;
+alias GLint = int;
+alias GLsizei = int;
+alias GLubyte = ubyte;
+alias GLushort = ushort;
+alias GLuint = uint;
+alias GLhalf = ushort;
+alias GLfloat = float;
+alias GLclampf = float;
+alias GLdouble = double;
+alias GLclampd = double;
+alias GLintptr = ptrdiff_t;
+alias GLsizeiptr = ptrdiff_t;
 
-// ARB_vertex_buffer_object
-alias ptrdiff_t GLintptrARB;
-alias ptrdiff_t GLsizeiptrARB;
+    // ARB_vertex_buffer_object
+alias GLintptrARB = ptrdiff_t;
+alias GLsizeiptrARB = ptrdiff_t;
 
-// ARB_shader_objects
-alias byte GLcharARB;
-alias uint GLhandleARB;
+    // ARB_shader_objects
+alias GLcharARB = byte;
+alias GLhandleARB = uint;
 
-// ARB_half_float_pixel
-alias ushort GLhalfARB;
+    // ARB_half_float_pixel
+alias GLhalfARB = ushort;
 
-// NV_half_float
-alias ushort GLhalfNV;
+    // NV_half_float
+alias GLhalfNV = ushort;
 
-// EXT_timer_query
-alias long GLint64EXT;
-alias ulong GLuint64EXT;
+    // EXT_timer_query
+alias GLint64EXT = long;
+alias GLuint64EXT = ulong;
 
-// ARB_sync
-alias long GLint64;
-alias ulong GLuint64;
+    // ARB_sync
+alias GLint64 = long;
+alias GLuint64 = ulong;
+
 struct __GLsync;
 alias __GLsync* GLsync;
 
@@ -75,15 +76,19 @@ alias __GLsync* GLsync;
 struct _cl_context;
 struct _cl_event;
 
-// ARB_debug_output
-extern(System) alias void function(GLenum, GLenum, GLuint, GLenum, GLsizei, in GLchar*, GLvoid*) GLDEBUGPROCARB;
+extern( System ) nothrow {
+    // ARB_debug_output
+    alias GLDEBUGPROCARB = void function( GLenum, GLenum, GLuint, GLenum, GLsizei, in GLchar*, GLvoid* );
 
-// AMD_debug_output
-extern(System) alias void function(GLuint, GLenum, GLenum, GLsizei, in GLchar*, GLvoid*) GLDEBUGPROCAMD;
+    // AMD_debug_output
+    alias GLDEBUGPROCAMD = void function( GLuint, GLenum, GLenum, GLsizei, in GLchar*, GLvoid* );
+
+    // KHR_debug
+    alias GLDEBUGPROC = void function( GLenum,GLenum,GLuint,GLenum,GLsizei,const( GLchar )*,GLvoid* );
+}
 
 // This is a Derelict type, not from OpenGL
-enum GLVersion
-{
+enum GLVersion {
     None,
     GL11 = 11,
     GL12 = 12,
@@ -99,5 +104,8 @@ enum GLVersion
     GL40 = 40,
     GL41 = 41,
     GL42 = 42,
-    HighestSupported = GL42,
+    GL43 = 43,
+    GL44 = 44,
+    GL45 = 45,
+    HighestSupported = GL45,
 }

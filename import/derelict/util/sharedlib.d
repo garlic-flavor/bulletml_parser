@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
+this license ( the "Software" ) to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -27,143 +27,109 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.util.sharedlib;
 
-private
-{
-    import std.string;
-    import std.conv;
+import std.string;
+import std.conv;
 
-    import derelict.util.exception;
-    import derelict.util.system;
-}
+import derelict.util.exception;
+import derelict.util.system;
 
-static if(Derelict_OS_Posix)
-{
-    static if(Derelict_OS_Linux)
-    {
-        private import std.c.linux.linux;
-    }
-    else
-    {
-        extern(C)
-        {
-            /* From <dlfcn.h>
-            *  See http://www.opengroup.org/onlinepubs/007908799/xsh/dlsym.html
-            */
+alias void* SharedLibHandle;
 
-            const int RTLD_NOW = 2;
+static if( Derelict_OS_Posix ) {
+    import core.sys.posix.dlfcn;
 
-            void *dlopen(const(char)* file, int mode);
-            int dlclose(void* handle);
-            void *dlsym(void* handle, const(char*) name);
-            const(char)* dlerror();
-        }
-    }
-
-    alias void* SharedLibHandle;
-
-    private SharedLibHandle LoadSharedLib(string libName)
-    {
-        return dlopen(libName.toStringz(), RTLD_NOW);
-    }
-
-    private void UnloadSharedLib(SharedLibHandle hlib)
-    {
-        dlclose(hlib);
-    }
-
-    private void* GetSymbol(SharedLibHandle hlib, string symbolName)
-    {
-        return dlsym(hlib, symbolName.toStringz());
-    }
-
-    private string GetErrorStr()
-    {
-        auto err = dlerror();
-        if(err is null)
-            return "Uknown Error";
-
-        return to!string(err);
-    }
-
-}
-else static if(Derelict_OS_Windows)
-{
-    private import derelict.util.wintypes;
-    alias HMODULE SharedLibHandle;
-
-    private SharedLibHandle LoadSharedLib(string libName)
-    {
-        return LoadLibraryA(libName.toStringz());
-    }
-
-    private void UnloadSharedLib(SharedLibHandle hlib)
-    {
-        FreeLibrary(hlib);
-    }
-
-    private void* GetSymbol(SharedLibHandle hlib, string symbolName)
-    {
-        return GetProcAddress(hlib, symbolName.toStringz());
-    }
-
-    private string GetErrorStr()
-    {
-        // adapted from Tango
-
-        DWORD errcode = GetLastError();
-
-        LPCSTR msgBuf;
-        DWORD i = FormatMessageA(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER |
-            FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
-            null,
-            errcode,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            cast(LPCSTR)&msgBuf,
-            0,
-            null);
-
-        string text = to!string(msgBuf);
-        LocalFree(cast(HLOCAL)msgBuf);
-
-        if(i >= 2)
-            i -= 2;
-        return text[0 .. i];
-    }
-}
-else
-{
-    static assert(0, "Derelict does not support this platform.");
-}
-
-final class SharedLib
-{
-    public
-    {
-        string name() @property
-        {
-            return _name;
+    private {
+        SharedLibHandle LoadSharedLib( string libName )    {
+            return dlopen( libName.toStringz(), RTLD_NOW );
         }
 
-        bool isLoaded() @property
-        {
-            return (_hlib !is null);
+        void UnloadSharedLib( SharedLibHandle hlib ) {
+            dlclose( hlib );
         }
 
-        void load(string[] names)
-        {
-            if(isLoaded)
+        void* GetSymbol( SharedLibHandle hlib, string symbolName ) {
+            return dlsym( hlib, symbolName.toStringz() );
+        }
+
+        string GetErrorStr() {
+            auto err = dlerror();
+            if( err is null )
+                return "Uknown Error";
+
+            return to!string( err );
+        }
+    }
+} else static if( Derelict_OS_Windows ) {
+    import derelict.util.wintypes;
+
+    private {
+        SharedLibHandle LoadSharedLib( string libName ) {
+            return LoadLibraryA( libName.toStringz() );
+        }
+
+        void UnloadSharedLib( SharedLibHandle hlib ) {
+            FreeLibrary( hlib );
+        }
+
+        void* GetSymbol( SharedLibHandle hlib, string symbolName ) {
+            return GetProcAddress( hlib, symbolName.toStringz() );
+        }
+
+        string GetErrorStr() {
+            import std.windows.syserror;
+            return sysErrorString( GetLastError() );
+        }
+    }
+} else {
+    static assert( 0, "Derelict does not support this platform." );
+}
+
+/++
+ Low-level wrapper of the even lower-level operating-specific shared library
+ loading interface.
+
+ While this interface can be used directly in applications, it is recommended
+ to use the interface specified by derelict.util.loader.SharedLibLoader
+ to implement bindings. SharedLib is designed to be the base of a higher-level
+ loader, but can be used in a program if only a handful of functions need to
+ be loaded from a given shared library.
++/
+struct SharedLib {
+    private {
+        string _name;
+        SharedLibHandle _hlib;
+        private MissingSymbolCallbackDg _onMissingSym;
+    }
+
+    public {
+        /++
+         Finds and loads a shared library, using libNames to find the library
+         on the file system.
+
+         If multiple library names are specified in libNames, a SharedLibLoadException
+         will only be thrown if all of the libraries fail to load. It will be the head
+         of an exceptin chain containing one instance of the exception for each library
+         that failed.
+
+
+         Params:
+            libNames =      An array containing one or more shared library names,
+                            with one name per index.
+         Throws:    SharedLibLoadException if the shared library or one of its
+                    dependencies cannot be found on the file system.
+                    SymbolLoadException if an expected symbol is missing from the
+                    library.
+        +/
+        void load( string[] names ) {
+            if( isLoaded )
                 return;
 
             string[] failedLibs;
             string[] reasons;
 
-            foreach(n; names)
-            {
-                _hlib = LoadSharedLib(n);
-                if(_hlib !is null)
-                {
+            foreach( n; names ) {
+                _hlib = LoadSharedLib( n );
+                if( _hlib !is null ) {
                     _name = n;
                     break;
                 }
@@ -172,34 +138,94 @@ final class SharedLib
                 reasons ~= GetErrorStr();
             }
 
-            if(!isLoaded)
-            {
-                SharedLibLoadException.throwNew(failedLibs, reasons);
+            if( !isLoaded ) {
+                SharedLibLoadException.throwNew( failedLibs, reasons );
             }
         }
 
-        void* loadSymbol(string symbolName, bool doThrow = true)
-        {
-            void* sym = GetSymbol(_hlib, symbolName);
-            if(doThrow && (sym is null))
-                Derelict_HandleMissingSymbol(name, symbolName);
+        /++
+         Loads the symbol specified by symbolName from a shared library.
+
+         Params:
+            symbolName =        The name of the symbol to load.
+            doThrow =   If true, a SymbolLoadException will be thrown if the symbol
+                        is missing. If false, no exception will be thrown and the
+                        ptr parameter will be set to null.
+         Throws:        SymbolLoadException if doThrow is true and a the symbol
+                        specified by funcName is missing from the shared library.
+        +/
+        void* loadSymbol( string symbolName, bool doThrow = true ) {
+            void* sym = GetSymbol( _hlib, symbolName );
+            if( doThrow && !sym ) {
+                auto result = ShouldThrow.Yes;
+                if( _onMissingSym !is null )
+                    result = _onMissingSym( symbolName );
+                if( result == ShouldThrow.Yes )
+                    throw new SymbolLoadException( _name, symbolName );
+            }
 
             return sym;
         }
 
-        void unload()
-        {
-            if(isLoaded)
-            {
-                UnloadSharedLib(_hlib);
+        /++
+         Unloads the shared library from memory, invalidating all function pointers
+         which were assigned a symbol by one of the load methods.
+        +/
+        void unload() {
+            if( isLoaded ) {
+                UnloadSharedLib( _hlib );
                 _hlib = null;
             }
         }
-    }
 
-    private
-    {
-        string _name;
-        SharedLibHandle _hlib;
+        @property {
+            /// Returns the name of the shared library.
+            string name() {
+                return _name;
+            }
+
+            /// Returns true if the shared library is currently loaded, false otherwise.
+            bool isLoaded() {
+                return ( _hlib !is null );
+            }
+
+            /++
+             Sets the callback that will be called when an expected symbol is
+             missing from the shared library.
+
+             Params:
+                callback =      A delegate that returns a value of type
+                                derelict.util.exception.ShouldThrow and accepts
+                                a string as the sole parameter.
+            +/
+            void missingSymbolCallback( MissingSymbolCallbackDg callback ) {
+                _onMissingSym = callback;
+            }
+
+            /++
+             Sets the callback that will be called when an expected symbol is
+             missing from the shared library.
+
+             Params:
+                callback =      A pointer to a function that returns a value of type
+                                derelict.util.exception.ShouldThrow and accepts
+                                a string as the sole parameter.
+            +/
+            void missingSymbolCallback( MissingSymbolCallbackFunc callback ) {
+                import std.functional : toDelegate;
+                _onMissingSym = toDelegate( callback );
+            }
+
+            /++
+             Returns the currently active missing symbol callback.
+
+             This exists primarily as a means to save the current callback before
+             setting a new one. It's useful, for example, if the new callback needs
+             to delegate to the old one.
+            +/
+            MissingSymbolCallback missingSymbolCallback() {
+                return _onMissingSym;
+            }
+        }
     }
 }

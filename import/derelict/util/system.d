@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
+this license ( the "Software" ) to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -27,43 +27,45 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.util.system;
 
-version(Windows) enum Derelict_OS_Windows = true;
+version( Windows ) enum Derelict_OS_Windows = true;
 else enum Derelict_OS_Windows = false;
 
-version(OSX) enum Derelict_OS_Mac = true;
+version( OSX ) enum Derelict_OS_Mac = true;
 else enum Derelict_OS_Mac = false;
 
-version(linux) enum Derelict_OS_Linux = true;
+version( linux ) enum Derelict_OS_Linux = true;
 else enum Derelict_OS_Linux = false;
 
-version(Posix) enum Derelict_OS_Posix = true;
+version( Posix ) enum Derelict_OS_Posix = true;
 else enum Derelict_OS_Posix = false;
 
-version(FreeBSD)
-{
+version( Android ) enum Derelict_OS_Android = true;
+else enum Derelict_OS_Android = false;
+
+// TODO
+enum Derelict_OS_iOS = false;
+enum Derelict_OS_WinRT = false;
+
+version( FreeBSD ) {
 	enum Derelict_OS_AnyBSD = true;
 	enum Derelict_OS_FreeBSD = true;
 	enum Derelict_OS_OpenBSD = false;
 	enum Derelict_OS_OtherBSD = false;
-}
-else version(OpenBSD)
-{
+} else version( OpenBSD ) {
 	enum Derelict_OS_AnyBSD = true;
 	enum Derelict_OS_FreeBSD = false;
 	enum Derelict_OS_OpenBSD = true;
 	enum Derelict_OS_OtherBSD = false;
-}
-else version(BSD)
-{
+} else version( BSD ) {
 	enum Derelict_OS_AnyBSD = true;
 	enum Derelict_OS_FreeBSD = false;
 	enum Derelict_OS_OpenBSD = false;
 	enum Derelict_OS_OtherBSD = true;
-}
-else
-{
+} else {
 	enum Derelict_OS_AnyBSD = false;
 	enum Derelict_OS_FreeBSD = false;
 	enum Derelict_OS_OpenBSD = false;
 	enum Derelict_OS_OtherBSD = false;
 }
+
+static if( __VERSION__ < 2066 ) enum nogc = 1;

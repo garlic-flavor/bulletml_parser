@@ -4,7 +4,7 @@ Boost Software License - Version 1.0 - August 17th, 2003
 
 Permission is hereby granted, free of charge, to any person or organization
 obtaining a copy of the software and accompanying documentation covered by
-this license (the "Software") to use, reproduce, display, distribute,
+this license ( the "Software" ) to use, reproduce, display, distribute,
 execute, and transmit the Software, and to prepare derivative works of the
 Software, and to permit third-parties to whom the Software is furnished to
 do so, all subject to the following:
@@ -27,39 +27,35 @@ DEALINGS IN THE SOFTWARE.
 */
 module derelict.opengl3.wgl;
 
-private
-{
-    import std.string;
-    import derelict.util.wintypes;
-}
+version( Windows ) {
 
-version(Windows)
-{
-    extern(Windows)
-    {
-        alias nothrow BOOL function(void*,void*) da_wglCopyContext;
-        alias nothrow void* function(void*) da_wglCreateContext;
-        alias nothrow void* function(void*,int) da_wglCreateLayerContext;
-        alias nothrow BOOL function(void*) da_wglDeleteContext;
-        alias nothrow BOOL function(void*,int,int,UINT,LAYERPLANEDESCRIPTOR*) da_wglDescribeLayerPlane;
-        alias nothrow void* function() da_wglGetCurrentContext;
-        alias nothrow void* function() da_wglGetCurrentDC;
-        alias nothrow int function(void*,int,int,int,COLORREF*) da_wglGetLayerPaletteEntries;
-        alias nothrow FARPROC function(LPCSTR) da_wglGetProcAddress;
-        alias nothrow BOOL function(void*,void*) da_wglMakeCurrent;
-        alias nothrow BOOL function(void*,int,BOOL) da_wglRealizeLayerPalette;
-        alias nothrow int function(void*,int,int,int,COLORREF*) da_wglSetLayerPaletteEntries;
-        alias nothrow BOOL function(void*,void*) da_wglShareLists;
-        alias nothrow BOOL function(void*,UINT) da_wglSwapLayerBuffers;
-        alias nothrow BOOL function(void*,DWORD,DWORD,DWORD) da_wglUseFontBitmapsW;
-        alias nothrow BOOL function(void*,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,GLYPHMETRICSFLOAT*) da_wglUseFontOutlinesW;
-
-        alias nothrow BOOL function(HDC, const(int)*, const(FLOAT)*, UINT, int*, UINT*) da_wglChoosePixelFormatARB;
-        alias nothrow HGLRC function(HDC, HGLRC, const(int)*) da_wglCreateContextAttribsARB;
+    private {
+        import std.string;
+        import derelict.util.wintypes;
+        import derelict.util.system;
     }
 
-    __gshared
-    {
+    extern( Windows ) @nogc nothrow {
+        alias da_wglCopyContext = BOOL function( void*,void* );
+        alias da_wglCreateContext = void* function( void* );
+        alias da_wglCreateLayerContext = void* function( void*,int );
+        alias da_wglDeleteContext = BOOL function( void* );
+        alias da_wglDescribeLayerPlane = BOOL function( void*,int,int,UINT,LAYERPLANEDESCRIPTOR* );
+        alias da_wglGetCurrentContext = void* function();
+        alias da_wglGetCurrentDC = void* function();
+        alias da_wglGetLayerPaletteEntries = int function( void*,int,int,int,COLORREF* );
+        alias da_wglGetProcAddress = FARPROC function( LPCSTR );
+        alias da_wglMakeCurrent = BOOL function( void*,void* );
+        alias da_wglRealizeLayerPalette = BOOL function( void*,int,BOOL );
+        alias da_wglSetLayerPaletteEntries = int function( void*,int,int,int,COLORREF* );
+        alias da_wglShareLists = BOOL function( void*,void* );
+        alias da_wglSwapLayerBuffers = BOOL function( void*,UINT );
+        alias da_wglUseFontBitmapsW = BOOL function( void*,DWORD,DWORD,DWORD );
+        alias da_wglUseFontOutlinesW = BOOL function( void*,DWORD,DWORD,DWORD,FLOAT,FLOAT,int,GLYPHMETRICSFLOAT* );
+
+    }
+
+    __gshared {
         da_wglCopyContext wglCopyContext;
         da_wglCreateContext wglCreateContext;
         da_wglCreateLayerContext wglCreateLayerContext;
@@ -78,51 +74,35 @@ version(Windows)
         da_wglUseFontOutlinesW wglUseFontOutlinesW;
     }
 
-    alias wglUseFontBitmapsW    wglUseFontBitmaps;
-    alias wglUseFontOutlinesW   wglUseFontOutlines;
+    alias wglUseFontBitmaps = wglUseFontBitmapsW;
+    alias wglUseFontOutlines = wglUseFontOutlinesW;
 
-    __gshared
-    {
-        da_wglChoosePixelFormatARB wglChoosePixelFormatARB;
-        da_wglCreateContextAttribsARB wglCreateContextAttribsARB;
-    }
-
-    package
-    {
-        void loadPlatformGL(void delegate(void**, string, bool doThrow) bindFunc)
-        {
-            bindFunc(cast(void**)&wglCopyContext, "wglCopyContext", true);
-            bindFunc(cast(void**)&wglCreateContext, "wglCreateContext", true);
-            bindFunc(cast(void**)&wglCreateLayerContext, "wglCreateLayerContext", true);
-            bindFunc(cast(void**)&wglDeleteContext, "wglDeleteContext", true);
-            bindFunc(cast(void**)&wglDescribeLayerPlane, "wglDescribeLayerPlane", true);
-            bindFunc(cast(void**)&wglGetCurrentContext, "wglGetCurrentContext", true);
-            bindFunc(cast(void**)&wglGetCurrentDC, "wglGetCurrentDC", true);
-            bindFunc(cast(void**)&wglGetLayerPaletteEntries, "wglGetLayerPaletteEntries", true);
-            bindFunc(cast(void**)&wglGetProcAddress, "wglGetProcAddress", true);
-            bindFunc(cast(void**)&wglMakeCurrent, "wglMakeCurrent", true);
-            bindFunc(cast(void**)&wglRealizeLayerPalette, "wglRealizeLayerPalette", true);
-            bindFunc(cast(void**)&wglSetLayerPaletteEntries, "wglSetLayerPaletteEntries", true);
-            bindFunc(cast(void**)&wglShareLists, "wglShareLists", true);
-            bindFunc(cast(void**)&wglSwapLayerBuffers, "wglSwapLayerBuffers", true);
-            bindFunc(cast(void**)&wglUseFontBitmapsW, "wglUseFontBitmapsW", true);
-            bindFunc(cast(void**)&wglUseFontOutlinesW, "wglUseFontOutlinesW", true);
+    package {
+        void loadPlatformGL( void delegate( void**, string, bool doThrow ) bindFunc ) {
+            bindFunc( cast( void** )&wglCopyContext, "wglCopyContext", true );
+            bindFunc( cast( void** )&wglCreateContext, "wglCreateContext", true );
+            bindFunc( cast( void** )&wglCreateLayerContext, "wglCreateLayerContext", true );
+            bindFunc( cast( void** )&wglDeleteContext, "wglDeleteContext", true );
+            bindFunc( cast( void** )&wglDescribeLayerPlane, "wglDescribeLayerPlane", true );
+            bindFunc( cast( void** )&wglGetCurrentContext, "wglGetCurrentContext", true );
+            bindFunc( cast( void** )&wglGetCurrentDC, "wglGetCurrentDC", true );
+            bindFunc( cast( void** )&wglGetLayerPaletteEntries, "wglGetLayerPaletteEntries", true );
+            bindFunc( cast( void** )&wglGetProcAddress, "wglGetProcAddress", true );
+            bindFunc( cast( void** )&wglMakeCurrent, "wglMakeCurrent", true );
+            bindFunc( cast( void** )&wglRealizeLayerPalette, "wglRealizeLayerPalette", true );
+            bindFunc( cast( void** )&wglSetLayerPaletteEntries, "wglSetLayerPaletteEntries", true );
+            bindFunc( cast( void** )&wglShareLists, "wglShareLists", true );
+            bindFunc( cast( void** )&wglSwapLayerBuffers, "wglSwapLayerBuffers", true );
+            bindFunc( cast( void** )&wglUseFontBitmapsW, "wglUseFontBitmapsW", true );
+            bindFunc( cast( void** )&wglUseFontOutlinesW, "wglUseFontOutlinesW", true );
         }
 
-        void loadWGLContextCreators()
-        {
-            wglChoosePixelFormatARB = cast(da_wglChoosePixelFormatARB)loadGLFunc("wglChoosePixelFormatARB");
-            wglCreateContextAttribsARB = cast(da_wglCreateContextAttribsARB)loadGLFunc("wglCreateContextAttribsARB");
+        void* loadGLFunc( string symName ) {
+            return cast( void* )wglGetProcAddress( symName.toStringz() );
         }
 
-        void* loadGLFunc(string symName)
-        {
-            return cast(void*)wglGetProcAddress(symName.toStringz());
-        }
-
-        bool hasValidContext()
-        {
-            if(wglGetCurrentContext && wglGetCurrentContext())
+        bool hasValidContext() {
+            if( wglGetCurrentContext && wglGetCurrentContext() )
                 return true;
             return false;
         }
