@@ -1,5 +1,5 @@
 /** オフスクリーンレンダリング関連
- * Version:    0.0003(dmd2.069)
+ * Version:    0.0003(dmd2.069)(dmd2.070.0)
  * Date:       2016-Jan-16 00:51:04
  * Authors:    KUMA
  * License:    CC0

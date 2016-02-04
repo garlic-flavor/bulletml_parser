@@ -1,72 +1,113 @@
 /** Compile-Time BulletML Parser.
- * Version:    0.0003(dmd2.069)
- * Date:       2016-Jan-26 20:40:50.1732797
- * Authors:    KUMA
- * License:    CC0
- **/
-/**
+Version:    0.0003(dmd2.069)(dmd2.070.0)
+Date:       2016-Feb-04 19:30:05
+Authors:    KUMA
+
+WHAT_IS_THIS:
+$(UL
+  $(LI This is a module of D Programming Language,)
+  $(LI to use $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/, BulletML) by $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/, ABA Games).)
+  $(LI I agree with this flow. $(LINK2 http://sourceforge.jp/projects/d-action/wiki/FrontPage, D言語でアクションゲームでも作ってみる？) $(LINK2 http://toro.2ch.net/test/read.cgi/tech/1329714331/574, 574).)
+  $(LI bulletml.exe is for 64bit Windows.)
+  $(LI bulletml.exe depends on $(LINK2 http://libsdl.org/, SDL2) and $(LINK2 http://opengl.org/, OpenGL).)
+  $(LI About bulletml.exe, click the client area of the window to change bullet type.)
+)
+
+License:    CC0
+$(LINK http://creativecommons.org/publicdomain/zero/1.0/).
+<p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
+  <a rel="license" href="http://creativecommons.org/publicdomain/zero/1.0/">
+    <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+  </a>
+  <br />
+  To the extent possible under law,
+  <a rel="dct:publisher" href="sweatygarlic@yahoo.co.jp">
+    <span property="dct:title">KUMA</span></a>
+  has waived all copyright and related or neighboring rights to
+  <span property="dct:title">CT BulletML Parser</span>.
+  This work is published from:
+  <span property="vcard:Country" datatype="dct:ISO3166" content="JP" about="sweatygarlic@yahoo.co.jp">
+  日本</span>.
+</p>
+
+Acknowledgements:
+$(UL
+  $(LI Files in "sample" directory are distributed by $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/, ABA Games).)
+  $(LI Files in "sample" directory are under BSD license.)
+  $(LI $(LINK2 ./bulletml-readme.txt, bulletml-readme))
+  $(LI $(LINK2 ./bulletml-readme_e.txt, bulletml-readme in English))
+  $(LI bulletml.exe depends on $(LINK2 https://github.com/DerelictOrg, Derelict) to build.)
+  $(LI written by $(LINK2 http://dlang.org/, D Programming Language).)
+)
+
+DevelopmentEnvironment:
+This module is tested under,
+$(UL
+  $(LI Windows Vista x64 + dmd 2.069.2)
+)
+
+History:
+$(UL
+  $(LI 2016/01/27 ver. 0.0003(dmd2.069.2)
+    fully rewritten.)
+  $(LI 2012/08/18 ver. 0.0002(dmd2.060)
+    debut on github.)
+)
+
+- - -
+
+これは?:
 これは $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/, BulletML(http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/))
 ファイルを読み込むためのプログラムです。
 
 BUGS:
-- 本家アプレットと挙動がなんかちがう。
+$(UL
+  $(LI 本家アプレットと挙動がなんかちがう。)
+)
 
-Acknowledgements:
+謝辞:
 $(UL
   $(LI
-    BulletML は ABA Games さんが作ったものです。$(BR)
-    $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/, ABA Games (http://www.asahi-net.or.jp/~cs8k-cyu/))$(BR)
+    BulletML は ABA Games さんが作ったものです。
+    $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/, ABA Games (http://www.asahi-net.or.jp/~cs8k-cyu/))
     $(LINK2 http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/, BulletML (http://www.asahi-net.or.jp/~cs8k-cyu/bulletml/))
 )
-
+  $(LI
+    sample フォルダ内のものは BSDライセンスです。
+    $(LINK2 ./bulletml-readme.txt, bulletml-readme)
+    $(LINK2 ./bulletml-readme_e.txt, bulletml-readme in English)
+)
   $(LI
     2ch D言語 part29 $(LINK2 http://toro.2ch.net/test/read.cgi/tech/1329714331/574, 574)
-    さんのゲーム作る流れが、モチベーションです。$(BR)
+    さんのゲーム作る流れが、モチベーションです。
     $(LINK2 http://sourceforge.jp/projects/d-action/wiki/FrontPage, D言語でアクションゲームでも作ってみる？(http://sourceforge.jp/projects/d-action/wiki/FrontPage))
 )
-
   $(LI
-    D言語用です。$(BR)
+    D言語用です。
     $(LINK2 http://dlang.org/index.html, D Programing Language 2.0 (http://dlang.org/index.html))
 )
-
   $(LI
-    C言語ライブラリのポーティングに Derelict を使っています。$(BR)
+    C言語ライブラリのポーティングに Derelict を使っています。
     $(LINK2 https://github.com/DerelictOrg, Derelict (https://github.com/DerelictOrg))
 )
-
   $(LI
-    SDL2+OpenGL4.2 環境を想定しています。$(BR)
-    $(LINK2 http://www.libsdl.org/, SDL (http://www.libsdl.org/))$(BR)
-    $(LINK@ http://www.opengl.org/, OpenGL (http://www.opengl.org/))
+    SDL2+OpenGL4.2 環境を想定しています。
+    $(LINK2 http://www.libsdl.org/, SDL (http://www.libsdl.org/))
+    $(LINK2 http://www.opengl.org/, OpenGL (http://www.opengl.org/))
 )
-
   $(LI
-    ドキュメントに JQuery を利用しています。$(BR)
+    ドキュメントに JQuery を利用しています。
     $(LINK2 http://jquery.com/, JQuery (http://jquery.com/))
 )
 )
 
-Lincense:
-  $(LINK2 http://creativecommons.org/publicdomain/zero/1.0/, CC0(http://creativecommons.org/publicdomain/zero/1.0/))
-  <p xmlns:dct="http://purl.org/dc/terms/" xmlns:vcard="http://www.w3.org/2001/vcard-rdf/3.0#">
-    <a rel="license" href="http://creativecommons.org/publicdomain/zero/1.0/">
-      <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
-    </a>
-    <br />
-    To the extent possible under law,
-    <a rel="dct:publisher" href="sweatygarlic@yahoo.co.jp">
-      <span property="dct:title">KUMA</span></a>
-    has waived all copyright and related or neighboring rights to
-    <span property="dct:title">CT BulletML Parser</span>.
-    This work is published from:
-    <span property="vcard:Country" datatype="dct:ISO3166" content="JP" about="sweatygarlic@yahoo.co.jp">
-    日本</span>.
-  </p>
+ライセンス:
+$(LINK2 http://creativecommons.org/publicdomain/zero/1.0/, CC0(http://creativecommons.org/publicdomain/zero/1.0/))
+<a rel="license" href="http://creativecommons.org/publicdomain/zero/1.0/">
+  <img src="http://i.creativecommons.org/p/zero/1.0/88x31.png" style="border-style: none;" alt="CC0" />
+</a>
 
-
-
-DevelopmentEnvironment:
+開発環境:
 以下の環境で開発&amp;動作確認しました。
 $(UL
   $(LI Windows Vista x64)
@@ -74,23 +115,23 @@ $(UL
 )
 
 
-History:
+履歴:
 $(UL
   $(LI
-    2016/01/27 ver. 0.0003(dmd2.069.2)$(BR)
+    2016/01/27 ver. 0.0003(dmd2.069.2)
     全面的に書き直し。
-  )
+)
   $(LI
-    2012/08/18 ver. 0.0002(dmd2.060)$(BR)
+    2012/08/18 ver. 0.0002(dmd2.060)
     github デビュー。SDL2.dll、SDL2_image.dll、derelict の更新。あとはいっしょ。
-  )
+)
   $(LI
-    2012/07/16 ver. 0.0001(dmd2.059)$(BR)
-    とりあえずでけた。なんやもうぐだぐだや。$(BR)
-  )
+    2012/07/16 ver. 0.0001(dmd2.059)
+    とりあえずでけた。なんやもうぐだぐだや。
+)
 )
 
- **/
+**/
 module sworks.bulletml.ctbml;
 
 import sworks.base.matrix;
@@ -606,6 +647,8 @@ class ChangeDirection : IActionFunc
     private @trusted @nogc pure nothrow
     void onReset(IBullet bul, float term, Direction direction)
     {
+        import std.math : isNaN;
+
         assert(bul);
         assert(!term.isNaN);
         _bullet = bul; _term = term; _direction = direction;

@@ -1,6 +1,6 @@
 /** GLSL のハンドリング
- * Version:    0.0003(dmd2.069)
- * Date:       2016-Jan-18 00:14:38
+ * Version:    0.0003(dmd2.069)(dmd2.070.0)
+ * Date:       2016-Jan-28 19:48:06
  * Authors:    KUMA
  * License:    CC0
  */
@@ -400,7 +400,7 @@ class VertexObject(VERTEX) : BufferObject!(GL_ARRAY_BUFFER)
         glBindBuffer(GL_ARRAY_BUFFER, id);
         long size;
         glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-        prog((cast(const(VERTEX)*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY))[0..size/VERTEX.sizeof]);
+        prog((cast(const(VERTEX)*)glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY))[0..(cast(size_t)size)/VERTEX.sizeof]);
         glUnmapBuffer(GL_ARRAY_BUFFER);
     }
 

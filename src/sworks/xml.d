@@ -1,5 +1,5 @@
 /** なんちゃってXMLパーサ。CTFEコンパチ。
- * Version:    0.0003(dmd2.069)
+ * Version:    0.0003(dmd2.069)(dmd2.070.0)
  * Date:       2016-Jan-21 23:46:06
  * Authors:    KUMA
  * License:    CC0

@@ -1,5 +1,5 @@
 /** キャッシュ付き逐次ファイル読み込み。様々なファイルのパースにも!
- * Version:    0.0003(dmd2.069)
+ * Version:    0.0003(dmd2.069)(dmd2.070.0)
  * Date:       2016-Jan-17 17:56:55
  * Authors:    KUMA
  * License:    CC0

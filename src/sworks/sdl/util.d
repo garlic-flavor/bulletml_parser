@@ -1,5 +1,5 @@
 /** to handle SDL
- * Version:    0.0003(dmd2.069)
+ * Version:    0.0003(dmd2.069)(dmd2.070.0)
  * Date:       2016-Jan-17 17:31:23
  * Authors:    KUMA
  * License:    CC0
